@@ -16,6 +16,8 @@ const DEFAULT_NAME = "NAME";
 const DEFAULT_SYMBOL = "SYMBOL";
 const DEFAULT_ALLOCATIONS = [50, 50];
 const DEFAULT_VARIABLE_ALLOCATIONS = false;
+const DEFAULT_INVESTMENT = 1000;
+const DEFAULT_INVESTMENT_ALLOCATION = [DEFAULT_INVESTMENT, DEFAULT_INVESTMENT];
 
 describe("FundFactory", function () {
   describe("Deployment", function () {
@@ -69,7 +71,6 @@ describe("FundFactory", function () {
       );
 
       await expect(fund.openFund()).to.emit(fund, "FundOpened");
-      console.log(process.env.REPORT_GAS);
     });
 
     it("Should close a fund", async function () {
@@ -80,6 +81,18 @@ describe("FundFactory", function () {
       await fund.closeFund();
 
       await expect(fund.closeFund()).to.emit(fund, "FundClosed");
+    });
+  });
+
+  describe("Investments", function () {
+    it("Should invest in a fund", async function () {
+      const { fund, token0, token1, owner, otherAccount } = await loadFixture(
+        deployFundFixture
+      );
+
+      await expect(fund.invest(DEFAULT_INVESTMENT_ALLOCATION))
+        .to.emit(fund, "Investment")
+        .withArgs(owner.address, DEFAULT_INVESTMENT_ALLOCATION);
     });
   });
 });
