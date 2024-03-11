@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "test": "npx hardhat test --network hardhat",
-    "coverage": "npx hardhat coverage"
+    "coverage": "npx hardhat coverage",
+    "size": "yarn hardhat size-contracts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
@@ -21,5 +22,10 @@
     "hardhat-gas-reporter": "^1.0.8",
     "solidity-coverage": "^0.8.0",
     "typechain": "^8.3.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "dotenv": "^16.4.5",
+    "hardhat-contract-sizer": "^2.10.0"
   }
 }
