@@ -9,7 +9,11 @@ interface IFund {
 
     event FundOpened();
     event FundClosed();
-    event Investment(address indexed investor, uint256[] allocations);
+    event Investment(
+        address indexed investor,
+        uint256[] allocations,
+        uint256 shares
+    );
 
     function invest(uint256[] calldata) external;
 
