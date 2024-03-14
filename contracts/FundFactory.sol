@@ -1,14 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interfaces/IFundFactory.sol";
 import "./Fund.sol";
 
-contract FundFactory {
+contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
     address[] public funds;
+    address public pricer;
+    address public swapper;
 
-    event FundCreated(address, string, string, address[], uint256[], bool);
-
-    constructor() {}
+    constructor(address _pricer, address _swapper) Ownable(msg.sender) {
+        if (_pricer == address(0)) revert PricerNotSet();
+        if (_swapper == address(0)) revert SwapperNotSet();
+        pricer = _pricer;
+        swapper = _swapper;
+    }
 
     function createFund(
         string calldata _name,
@@ -18,8 +25,10 @@ contract FundFactory {
         bool _variableAllocation
     ) external returns (address fund) {
         fund = address(
-            new Fund{salt: keccak256(abi.encodePacked(block.timestamp))}(
+            new DvrsfyFund{salt: keccak256(abi.encodePacked(block.timestamp))}(
                 msg.sender,
+                pricer,
+                swapper,
                 _name,
                 _symbol,
                 _assets,
@@ -30,11 +39,23 @@ contract FundFactory {
         funds.push(fund);
         emit FundCreated(
             msg.sender,
+            pricer,
+            swapper,
             _name,
             _symbol,
             _assets,
             _allocations,
             _variableAllocation
         );
+    }
+
+    function updatePricer(address _pricer) external {
+        pricer = _pricer;
+        emit PricerUpdated(_pricer);
+    }
+
+    function updateSwapper(address _swapper) external {
+        swapper = _swapper;
+        emit SwapperUpdated(_swapper);
     }
 }

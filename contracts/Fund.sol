@@ -2,21 +2,25 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/access/Roles.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IFund.sol";
 import "./interfaces/IPricer.sol";
 import "./interfaces/ISwapper.sol";
 import "hardhat/console.sol";
 
-contract Fund is IFund, ERC20Permit, Ownable {
+contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     address[] public assets;
     uint256[] public allocations;
     bool public variableAllocation;
     bool public openForInvestments;
     uint256 public maxAssets = 10;
+    address public pricer;
+    address public swapper;
 
     constructor(
         address _owner,
+        address _pricer,
+        address _swapper,
         string memory _name,
         string memory _symbol,
         address[] memory _assets,
@@ -35,41 +39,35 @@ contract Fund is IFund, ERC20Permit, Ownable {
     }
 
     modifier fundIsOpen() {
-        require(openForInvestments, "Fund is closed");
+        if (!openForInvestments) revert NewInvestmentsClosed();
         _;
     }
 
-    function _calculateShares(
-        uint256[] memory _userAllocations
-    ) internal view returns (uint256 _shares) {
-        // TODO - calculate the shares to be issued
-        // for (uint256 i = 0; i < assets.length; i++) {
-        //     _shares += (_userAllocations[i] * totalSupply()) / allocations[i];
-        // }
-        return 100;
+    function calculateNAV(IDvrsfyPricer _pricer) public view returns (uint256) {
+        uint256[] memory prices = _pricer.getPrices(assets);
+        uint256 nav = 0;
+        for (uint256 i = 0; i < assets.length; i++) {
+            // Review math
+            // nav += prices[i] * allocations[i];
+        }
+        return nav;
     }
 
     function invest(
-        uint256[] calldata _userAllocations,
-        IPricer _pricer
-    ) external fundIsOpen returns (uint256 _shares) {
-        uint256 assetsLength = assets.length;
-        uint256 userAllocationsLength = _userAllocations.length;
-        if (userAllocationsLength != assetsLength)
-            revert IncorrectAllocation(userAllocationsLength, assetsLength);
-        _shares = _calculateShares(_userAllocations);
-        // Need to get token prices to calculate the shares to be issued
-        // if (variableAllocation) {
-        //     for (uint256 i = 0; i < assetsLength; i++) {
-        //         if (userAllocations[i] > allocations[i])
-        //             revert IncorrectParameters(assets, userAllocations);
-        //     }
-        // }
-        // for (uint256 i = 0; i < _userAllocations.length; i++) {
-        // IERC20(assets[i]).transferFrom(msg.sender, address(this), _userAllocations[i]);
-        // _mint(msg.sender, _userAllocations[i]);
-        // }
-        emit Investment(msg.sender, _userAllocations, _shares);
+        uint256 _shares,
+        IDvrsfyPricer _pricer
+    ) public payable fundIsOpen {
+        calculateNAV(_pricer);
+        // Transfer funds from investor to the fund (nav*_shares)
+
+        // Q: Write me a line to transfer part of the msg.value to another wallet
+        // A: wallet.transfer(msg.value/2);
+        // wallet.transfer(msg.value / 2);
+        // Collect protocol fee
+        // Swap funds for assets
+        // IDvrsfySwapper.swap(assets, _shares);
+        _mint(msg.sender, _shares);
+        emit Investment(msg.sender, _shares);
     }
 
     function divest() external {}
@@ -89,4 +87,8 @@ contract Fund is IFund, ERC20Permit, Ownable {
         openForInvestments = true;
         emit FundOpened();
     }
+
+    fallback() external payable {}
+
+    receive() external payable {}
 }

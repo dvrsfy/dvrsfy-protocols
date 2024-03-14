@@ -6,10 +6,10 @@ const { ethers } = require("hardhat");
 
 const DEFAULT_NAME = "NAME";
 const DEFAULT_SYMBOL = "SYMBOL";
-const DEFAULT_FUNDING = "100000000000000";
-
 let token0;
 let token1;
+let pricer;
+let swapper;
 
 async function tokensFixture() {
   const tokenFactory = await ethers.getContractFactory("TestERC20");
@@ -19,19 +19,36 @@ async function tokensFixture() {
   return { token0, token1 };
 }
 
+async function getSigners() {
+  const [deployer, user1, user2, user3] = await ethers.getSigners();
+  return { deployer, user1, user2, user3 };
+}
+
+async function deployPricerFixture() {
+  const Pricer = await ethers.getContractFactory("DvrsfyPricer");
+  pricer = await Pricer.deploy();
+
+  return { pricer };
+}
+
+async function deploySwapperFixture() {
+  const Swapper = await ethers.getContractFactory("DvrsfySwapper");
+  swapper = await Swapper.deploy();
+
+  return { swapper };
+}
+
 async function deployFundFactoryFixture() {
   // Contracts are deployed using the first signer/account by default
   const [owner, otherAccount] = await ethers.getSigners();
 
-  const FundFactory = await ethers.getContractFactory("FundFactory");
-  const fundFactory = await FundFactory.deploy();
+  await deployPricerFixture();
+  await deploySwapperFixture();
 
-  return { fundFactory, owner, otherAccount };
-}
-
-async function getSigners() {
-  const [deployer, user1, user2, user3] = await ethers.getSigners();
-  return { deployer, user1, user2, user3 };
+  const FundFactory = await ethers.getContractFactory("DvrsfyFundFactory");
+  const fundFactory = await FundFactory.deploy(pricer.target, swapper.target);
+  console.log(await fundFactory.pricer());
+  return { fundFactory, pricer, swapper, owner, otherAccount };
 }
 
 async function deployFundFixture() {
@@ -40,9 +57,14 @@ async function deployFundFixture() {
 
   await tokensFixture();
 
-  const Fund = await ethers.getContractFactory("Fund");
+  await deployPricerFixture();
+  await deploySwapperFixture();
+
+  const Fund = await ethers.getContractFactory("DvrsfyFund");
   const fund = await Fund.deploy(
     owner.address,
+    pricer.target,
+    swapper.target,
     DEFAULT_NAME,
     DEFAULT_SYMBOL,
     [token0.target, token1.target],
@@ -50,7 +72,7 @@ async function deployFundFixture() {
     false
   );
 
-  return { fund, token0, token1, owner, otherAccount };
+  return { fund, pricer, swapper, token0, token1, owner, otherAccount };
 }
 
 module.exports = {
