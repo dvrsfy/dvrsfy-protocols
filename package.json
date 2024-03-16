@@ -25,6 +25,8 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.2",
+    "@uniswap/v3-core": "1.0.2-solc-0.8-simulate",
+    "@uniswap/v3-periphery": "1.4.3",
     "bignumber.js": "^9.1.2",
     "dotenv": "^16.4.5",
     "hardhat-contract-sizer": "^2.10.0"
