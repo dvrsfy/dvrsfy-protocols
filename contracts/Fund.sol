@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IFund.sol";
 import "./interfaces/IPricer.sol";
@@ -43,27 +44,35 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         _;
     }
 
-    function calculateNAV(IDvrsfyPricer _pricer) public view returns (uint256) {
+    function calculateShares(
+        IDvrsfyPricer _pricer,
+        uint256 _investment
+    ) public view returns (uint256) {
+        uint256 _totalSupply = totalSupply();
+        if (_totalSupply == 0) return 0;
         uint256[] memory prices = _pricer.getPrices(assets);
-        uint256 nav = 0;
+        uint256 _shares = 0;
         for (uint256 i = 0; i < assets.length; i++) {
-            // Review math
-            // nav += prices[i] * allocations[i];
+            // Need to normalize the price to the same decimals as the asset
+            _shares = IERC20(assets[i]).balanceOf(address(this)) * prices[i];
         }
-        return nav;
+        _shares = _shares / totalSupply();
+        return _shares;
     }
 
     function invest(
-        uint256 _shares,
+        uint256 _amount,
+        address _token,
         IDvrsfyPricer _pricer
     ) public payable fundIsOpen {
-        calculateNAV(_pricer);
-        // Transfer funds from investor to the fund (nav*_shares)
-
-        // Q: Write me a line to transfer part of the msg.value to another wallet
-        // A: wallet.transfer(msg.value/2);
-        // wallet.transfer(msg.value / 2);
-        // Collect protocol fee
+        if (_amount == 0) revert("Implement custom error");
+        IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        uint256 _investment = _amount;
+        if (_token != assets[0]) {
+            // get price of _token in terms of assets[0]
+            // _investment = getPrice(_token);
+        }
+        uint256 _shares = calculateShares(_pricer, _investment);
         // Swap funds for assets
         // IDvrsfySwapper.swap(assets, _shares);
         _mint(msg.sender, _shares);

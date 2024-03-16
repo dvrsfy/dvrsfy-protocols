@@ -1,59 +1,66 @@
-const {
-  time,
-  loadFixture,
-} = require("@nomicfoundation/hardhat-network-helpers");
 const { ethers } = require("hardhat");
-
-const DEFAULT_NAME = "NAME";
-const DEFAULT_SYMBOL = "SYMBOL";
+const { BigNumber } = require("ethers");
+const bn = require("bignumber.js");
+const constants = require("../utils/constants.js");
+const fetch = require("node-fetch");
 let token0;
 let token1;
 let pricer;
 let swapper;
+let deployer;
+let user1;
+let user2;
+let user3;
+
+async function getSigners() {
+  [deployer, user1, user2, user3] = await ethers.getSigners();
+  return { deployer, user1, user2, user3 };
+}
 
 async function tokensFixture() {
   const tokenFactory = await ethers.getContractFactory("TestERC20");
   token0 = await tokenFactory.deploy();
   token1 = await tokenFactory.deploy();
 
-  return { token0, token1 };
-}
+  for (const user of [deployer, user1, user2, user3]) {
+    await token0.mint(user.address, constants.DEFAULT_BALANCE);
+    await token1.mint(user.address, constants.DEFAULT_BALANCE);
+  }
 
-async function getSigners() {
-  const [deployer, user1, user2, user3] = await ethers.getSigners();
-  return { deployer, user1, user2, user3 };
+  return { token0, token1 };
 }
 
 async function deployPricerFixture() {
   const Pricer = await ethers.getContractFactory("DvrsfyPricer");
   pricer = await Pricer.deploy();
-
   return { pricer };
 }
 
 async function deploySwapperFixture() {
   const Swapper = await ethers.getContractFactory("DvrsfySwapper");
-  swapper = await Swapper.deploy();
+  swapper = await Swapper.deploy(
+    constants.WETH_ADDRESS,
+    constants.ZEROX_SWAP_ROUTER
+  );
 
   return { swapper };
 }
 
 async function deployFundFactoryFixture() {
   // Contracts are deployed using the first signer/account by default
-  const [owner, otherAccount] = await ethers.getSigners();
+  await getSigners();
 
   await deployPricerFixture();
   await deploySwapperFixture();
 
   const FundFactory = await ethers.getContractFactory("DvrsfyFundFactory");
   const fundFactory = await FundFactory.deploy(pricer.target, swapper.target);
-  console.log(await fundFactory.pricer());
-  return { fundFactory, pricer, swapper, owner, otherAccount };
+  return { fundFactory, pricer, swapper, deployer, user1 };
 }
 
 async function deployFundFixture() {
   // Contracts are deployed using the first signer/account by default
-  const [owner, otherAccount] = await ethers.getSigners();
+  await getSigners();
 
   await tokensFixture();
 
@@ -62,22 +69,60 @@ async function deployFundFixture() {
 
   const Fund = await ethers.getContractFactory("DvrsfyFund");
   const fund = await Fund.deploy(
-    owner.address,
+    deployer.address,
     pricer.target,
     swapper.target,
-    DEFAULT_NAME,
-    DEFAULT_SYMBOL,
+    constants.DEFAULT_NAME,
+    constants.DEFAULT_SYMBOL,
     [token0.target, token1.target],
     [50, 50],
     false
   );
 
-  return { fund, pricer, swapper, token0, token1, owner, otherAccount };
+  return { fund, pricer, swapper, token0, token1, deployer, user1 };
+}
+
+async function swapTokensFixture() {
+  const weth = await ethers.getContractAt("TestERC20", constants.WETH_ADDRESS);
+  const dai = await ethers.getContractAt("TestERC20", constants.DAI_ADDRESS);
+  const usdc = await ethers.getContractAt("TestERC20", constants.USDC_ADDRESS);
+  return { weth, dai, usdc };
+}
+
+function createQueryString(params) {
+  return Object.entries(params)
+    .map(([k, v]) => `${k}=${v}`)
+    .join("&");
+}
+
+async function getQuote(qs) {
+  const headers = { "0x-api-key": process.env.ZEROx_API_KEY };
+  const quoteUrl = `${constants.API_QUOTE_URL}?${qs}`;
+  const response = await fetch(quoteUrl, { headers });
+  const quote = await response.json();
+  return quote;
+}
+
+function encodePriceSqrt(reserve1, reserve0) {
+  return BigNumber.from(
+    new bn(reserve1.toString())
+      .div(reserve0.toString())
+      .sqrt()
+      .multipliedBy(new bn(2).pow(96))
+      .integerValue(3)
+      .toFixed()
+  );
 }
 
 module.exports = {
   getSigners,
   tokensFixture,
+  deploySwapperFixture,
+  deployPricerFixture,
   deployFundFactoryFixture,
   deployFundFixture,
+  swapTokensFixture,
+  createQueryString,
+  getQuote,
+  encodePriceSqrt,
 };
