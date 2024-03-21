@@ -3,11 +3,13 @@ const { BigNumber } = require("ethers");
 const bn = require("bignumber.js");
 const constants = require("../utils/constants.js");
 const fetch = require("node-fetch");
+const UNISWAP_V3_FACTORY = require("@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json");
 let token0;
 let token1;
 let pricer;
 let swapper;
 let deployer;
+let uniswapFactoryV3;
 let user1;
 let user2;
 let user3;
@@ -30,9 +32,18 @@ async function tokensFixture() {
   return { token0, token1 };
 }
 
+async function deployUniswapFactoryV3Fixture() {
+  const uniswapFactoryV3 = await ethers.getContractAt(
+    UNISWAP_V3_FACTORY.abi,
+    constants.UNISWAP_V3_FACTORY
+  );
+  return { uniswapFactoryV3 };
+}
+
 async function deployPricerFixture() {
+  const { uniswapFactoryV3 } = await deployUniswapFactoryV3Fixture();
   const Pricer = await ethers.getContractFactory("DvrsfyPricer");
-  pricer = await Pricer.deploy();
+  pricer = await Pricer.deploy(uniswapFactoryV3);
   return { pricer };
 }
 
@@ -76,6 +87,7 @@ async function deployFundFixture() {
     constants.DEFAULT_SYMBOL,
     [token0.target, token1.target],
     [50, 50],
+    constants.USDC_ADDRESS,
     false
   );
 

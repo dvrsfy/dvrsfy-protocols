@@ -16,9 +16,10 @@ interface IDvrsfyFund {
     event Investment(address indexed investor, uint256 shares);
 
     function invest(
+        IDvrsfyPricer _pricer,
+        IUniswapV3Pool[] calldata _pools,
         uint256 _amount,
-        address _token,
-        IDvrsfyPricer _pricer
+        address _token
     ) external payable;
 
     function divest() external;

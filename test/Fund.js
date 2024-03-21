@@ -9,6 +9,7 @@ const {
   tokensFixture,
   deployFundFactoryFixture,
   deployFundFixture,
+  swapTokensFixture,
 } = require("./Fixtures.js");
 
 describe("Fund Unit", function () {
@@ -26,6 +27,7 @@ describe("Fund Unit", function () {
         constants.DEFAULT_SYMBOL,
         default_assets,
         constants.DEFAULT_ALLOCATIONS,
+        constants.USDC_ADDRESS,
         constants.DEFAULT_VARIABLE_ALLOCATIONS
       );
 
@@ -39,6 +41,7 @@ describe("Fund Unit", function () {
           constants.DEFAULT_SYMBOL,
           default_assets,
           constants.DEFAULT_ALLOCATIONS,
+          constants.USDC_ADDRESS,
           constants.DEFAULT_VARIABLE_ALLOCATIONS
         );
     });
@@ -65,12 +68,30 @@ describe("Fund Unit", function () {
       const { fund, pricer, token0, token1, deployer } = await loadFixture(
         deployFundFixture
       );
+      const { usdc } = await loadFixture(swapTokensFixture);
 
-      const prices = await pricer.getPrices([token0.target, token1.target]);
-      await token0.approve(fund.target, constants.DEFAULT_SHARES);
-      await expect(fund.invest(constants.DEFAULT_SHARES, token0, pricer.target))
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.USDC_HOLDER],
+      });
+      const usdc_holder = await ethers.getSigner(constants.USDC_HOLDER);
+
+      await usdc
+        .connect(usdc_holder)
+        .approve(fund.target, constants.DEFAULT_SHARES);
+
+      await expect(
+        fund
+          .connect(usdc_holder)
+          .invest(
+            pricer.target,
+            [constants.USDC_WETH_POOL],
+            constants.DEFAULT_SHARES,
+            constants.USDC_ADDRESS
+          )
+      )
         .to.emit(fund, "Investment")
-        .withArgs(deployer.address, constants.DEFAULT_SHARES);
+        .withArgs(usdc_holder, constants.DEFAULT_SHARES);
     });
   });
 });

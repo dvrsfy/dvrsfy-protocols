@@ -22,6 +22,7 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
         string calldata _symbol,
         address[] memory _assets,
         uint256[] memory _allocations,
+        address _baseToken,
         bool _variableAllocation
     ) external returns (address fund) {
         fund = address(
@@ -33,6 +34,7 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
                 _symbol,
                 _assets,
                 _allocations,
+                _baseToken,
                 _variableAllocation
             )
         );
@@ -45,6 +47,7 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
             _symbol,
             _assets,
             _allocations,
+            _baseToken,
             _variableAllocation
         );
     }
