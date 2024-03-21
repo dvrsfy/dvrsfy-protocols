@@ -20,14 +20,12 @@ describe("Pricer Unit", function () {
   describe("Price", function () {
     it("Should give the price of an asset", async function () {
       const { pricer } = await loadFixture(deployPricerFixture);
-      const price = await pricer.getPrices([constants.USDC_WETH_POOL]);
-      console.log("Price: ", price.toString());
-
-      const invertedPrice = await pricer.getInvertedPrices([
-        constants.USDC_WETH_POOL,
-      ]);
-      console.log("Inverted Price: ", invertedPrice.toString());
-      expect(price).to.not.equal(constants.ZERO);
+      const price = await pricer.getPrices(
+        constants.USDC_ADDRESS,
+        [constants.WETH_ADDRESS],
+        [500]
+      );
+      await expect(price).to.not.equal(constants.ZERO);
     });
   });
 });

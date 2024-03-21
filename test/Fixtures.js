@@ -33,7 +33,7 @@ async function tokensFixture() {
 }
 
 async function deployUniswapFactoryV3Fixture() {
-  const uniswapFactoryV3 = await ethers.getContractAt(
+  uniswapFactoryV3 = await ethers.getContractAt(
     UNISWAP_V3_FACTORY.abi,
     constants.UNISWAP_V3_FACTORY
   );
@@ -87,6 +87,7 @@ async function deployFundFixture() {
     constants.DEFAULT_SYMBOL,
     [token0.target, token1.target],
     [50, 50],
+    constants.PRICING_FEES,
     constants.USDC_ADDRESS,
     false
   );

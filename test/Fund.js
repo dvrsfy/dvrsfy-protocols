@@ -27,6 +27,7 @@ describe("Fund Unit", function () {
         constants.DEFAULT_SYMBOL,
         default_assets,
         constants.DEFAULT_ALLOCATIONS,
+        constants.PRICING_FEES,
         constants.USDC_ADDRESS,
         constants.DEFAULT_VARIABLE_ALLOCATIONS
       );
@@ -41,6 +42,7 @@ describe("Fund Unit", function () {
           constants.DEFAULT_SYMBOL,
           default_assets,
           constants.DEFAULT_ALLOCATIONS,
+          constants.PRICING_FEES,
           constants.USDC_ADDRESS,
           constants.DEFAULT_VARIABLE_ALLOCATIONS
         );
@@ -64,7 +66,7 @@ describe("Fund Unit", function () {
   });
 
   describe("Investments", function () {
-    it("Should invest in a fund", async function () {
+    it("Should invest one token in a fund", async function () {
       const { fund, pricer, token0, token1, deployer } = await loadFixture(
         deployFundFixture
       );
@@ -85,13 +87,55 @@ describe("Fund Unit", function () {
           .connect(usdc_holder)
           .invest(
             pricer.target,
-            [constants.USDC_WETH_POOL],
             constants.DEFAULT_SHARES,
             constants.USDC_ADDRESS
           )
       )
         .to.emit(fund, "Investment")
         .withArgs(usdc_holder, constants.DEFAULT_SHARES);
+    });
+
+    it("Should invest two tokens in a fund", async function () {
+      const { fundFactory, pricer, swapper, deployer, user1 } =
+        await loadFixture(deployFundFactoryFixture);
+
+      const { weth, dai, usdc } = await loadFixture(swapTokensFixture);
+
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.USDC_HOLDER],
+      });
+      const usdc_holder = await ethers.getSigner(constants.USDC_HOLDER);
+
+      const fund = await fundFactory.createFund(
+        constants.DEFAULT_NAME,
+        constants.DEFAULT_SYMBOL,
+        [usdc, weth],
+        constants.DEFAULT_ALLOCATIONS,
+        constants.PRICING_FEES,
+        constants.USDC_ADDRESS,
+        constants.DEFAULT_VARIABLE_ALLOCATIONS
+      );
+
+      // console.log(usdc);
+      // console.log(usdc_holder);
+      console.log(fund);
+
+      // await usdc
+      //   .connect(usdc_holder)
+      //   .approve(fund.target, constants.DEFAULT_SHARES);
+
+      //   await expect(
+      //     fund
+      //       .connect(usdc_holder)
+      //       .invest(
+      //         pricer.target,
+      //         constants.DEFAULT_SHARES,
+      //         constants.USDC_ADDRESS
+      //       )
+      //   )
+      //     .to.emit(fund, "Investment")
+      //     .withArgs(usdc_holder, constants.DEFAULT_SHARES);
     });
   });
 });

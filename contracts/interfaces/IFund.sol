@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "./IPricer.sol";
 
 interface IDvrsfyFund {
@@ -17,7 +18,6 @@ interface IDvrsfyFund {
 
     function invest(
         IDvrsfyPricer _pricer,
-        IUniswapV3Pool[] calldata _pools,
         uint256 _amount,
         address _token
     ) external payable;

@@ -13,6 +13,8 @@ import "hardhat/console.sol";
 contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     address[] public assets;
     uint256[] public allocations;
+    uint24[] public pricingFees;
+    IUniswapV3Pool[] public pricingPools;
     bool public variableAllocation;
     bool public openForInvestments;
     uint256 public maxAssets = 10;
@@ -28,6 +30,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         string memory _symbol,
         address[] memory _assets,
         uint256[] memory _allocations,
+        uint24[] memory _pricingFees,
         address _baseToken,
         bool _variableAllocation
     ) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(_owner) {
@@ -39,6 +42,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         assets = _assets;
         allocations = _allocations;
         baseToken = _baseToken;
+        pricingFees = _pricingFees;
         variableAllocation = _variableAllocation;
         openForInvestments = true;
     }
@@ -50,12 +54,15 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
 
     function calculateShares(
         IDvrsfyPricer _pricer,
-        IUniswapV3Pool[] calldata _pools,
         uint256 _investment
     ) public view returns (uint256) {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply == 0) return 1000;
-        uint256[] memory prices = _pricer.getPrices(_pools);
+        uint256[] memory prices = _pricer.getPrices(
+            baseToken,
+            assets,
+            pricingFees
+        );
         uint256 _shares = 0;
         for (uint256 i = 0; i < assets.length; i++) {
             // Need to normalize the price to the same decimals as the asset
@@ -68,7 +75,6 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
 
     function invest(
         IDvrsfyPricer _pricer,
-        IUniswapV3Pool[] calldata _pools,
         uint256 _amount,
         address _token
     ) public payable fundIsOpen {
@@ -79,7 +85,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
             // get price of _token in terms of assets[0]
             // _investment = getPrice(_token);
         }
-        uint256 _shares = calculateShares(_pricer, _pools, _investment);
+        uint256 _shares = calculateShares(_pricer, _investment);
         // Swap funds for assets
         // IDvrsfySwapper.swap(assets, _shares);
         _mint(msg.sender, _shares);
