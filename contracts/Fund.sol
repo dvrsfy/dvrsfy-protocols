@@ -93,7 +93,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         address _token
     ) public fundIsOpen {
         if (!fundAssets[_token]) revert InvalidInvestment(_token);
-        // IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        IERC20(_token).transferFrom(msg.sender, address(this), _amount);
         uint256 _investment = _amount / 10 ** IERC20Decimals(_token).decimals();
         if (_token != assets[0]) {
             // get price of _token in terms of assets[0]

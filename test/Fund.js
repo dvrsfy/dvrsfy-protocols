@@ -71,22 +71,22 @@ describe("Fund Unit", function () {
 
       await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [constants.WHALE],
+        params: [constants.WETH_HOLDER],
       });
 
-      const whale = await ethers.getSigner(constants.WHALE);
+      const weth_holder = await ethers.getSigner(constants.WETH_HOLDER);
 
       await weth
-        .connect(whale)
+        .connect(weth_holder)
         .approve(fund.target, constants.DEFAULT_INVESTMENT);
 
       await expect(
         fund
-          .connect(whale)
+          .connect(weth_holder)
           .invest(pricer.target, constants.DEFAULT_INVESTMENT, weth)
       )
         .to.emit(fund, "Investment")
-        .withArgs(whale.address, BigInt(constants.DEFAULT_SHARES));
+        .withArgs(weth_holder.address, BigInt(constants.DEFAULT_SHARES));
     });
 
     it("Should invest in an existing fund and get the right amount of shares", async function () {
