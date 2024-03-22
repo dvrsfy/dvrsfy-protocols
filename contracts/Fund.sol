@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IFund.sol";
 import "./interfaces/IPricer.sol";
 import "./interfaces/ISwapper.sol";
+import "./interfaces/IERC20Decimal.sol";
 import "hardhat/console.sol";
 
 contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
@@ -21,6 +22,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     address public pricer;
     address public swapper;
     address public baseToken;
+    uint256 constant FUND_DECIMALS = 18;
 
     constructor(
         address _owner,
@@ -56,19 +58,25 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         IDvrsfyPricer _pricer,
         uint256 _investment
     ) public view returns (uint256) {
+        uint256 _shares = 0;
         uint256 _totalSupply = totalSupply();
-        if (_totalSupply == 0) return 1000;
         uint256[] memory prices = _pricer.getPrices(
             baseToken,
             assets,
             pricingFees
         );
-        uint256 _shares = 0;
-        for (uint256 i = 0; i < assets.length; i++) {
-            // Need to normalize the price to the same decimals as the asset
-            _shares = IERC20(assets[i]).balanceOf(address(this)) * prices[i];
+
+        if (_totalSupply == 0) {
+            _shares = _investment * 10 ** FUND_DECIMALS;
+        } else {
+            for (uint256 i = 0; i < assets.length; i++) {
+                // Need to normalize the price to the same decimals as the asset
+                _shares =
+                    IERC20(assets[i]).balanceOf(address(this)) *
+                    prices[i];
+            }
+            _shares = _shares / totalSupply();
         }
-        _shares = _shares / totalSupply();
         return _shares;
     }
 
@@ -78,7 +86,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         address _token
     ) public fundIsOpen {
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
-        uint256 _investment = _amount;
+        uint256 _investment = _amount / 10 ** IERC20Decimals(_token).decimals();
         if (_token != assets[0]) {
             // get price of _token in terms of assets[0]
             // _investment = getPrice(_token);
