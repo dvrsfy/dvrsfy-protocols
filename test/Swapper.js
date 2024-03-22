@@ -9,7 +9,7 @@ const constants = require("../utils/constants");
 
 const {
   deploySwapperFixture,
-  swapTokensFixture,
+  deployTokensFixture,
   createQueryString,
   getQuote,
   encodePriceSqrt,
@@ -26,12 +26,12 @@ describe("Swapper Unit", function () {
   describe("Swaps", function () {
     it("Should swap", async function () {
       const { swapper } = await loadFixture(deploySwapperFixture);
-      const { weth, dai, usdc } = await loadFixture(swapTokensFixture);
+      const { weth, dai, usdc } = await loadFixture(deployTokensFixture);
       await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [constants.DAI_HOLDER],
+        params: [constants.WHALE],
       });
-      const dai_holder = await ethers.getSigner(constants.DAI_HOLDER);
+      const whale = await ethers.getSigner(constants.WHALE);
 
       const qsUSDC = createQueryString({
         sellToken: "DAI",
@@ -50,11 +50,9 @@ describe("Swapper Unit", function () {
         swapCallData: quoteUSDC.data,
       };
 
-      await dai
-        .connect(dai_holder)
-        .approve(swapper.target, constants.TEST_SWAP);
+      await dai.connect(whale).approve(swapper.target, constants.TEST_SWAP);
 
-      await expect(swapper.connect(dai_holder).swap(swapParams)).to.emit(
+      await expect(swapper.connect(whale).swap(swapParams)).to.emit(
         swapper,
         "Swap"
       );

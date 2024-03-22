@@ -4,8 +4,10 @@ const bn = require("bignumber.js");
 const constants = require("../utils/constants.js");
 const fetch = require("node-fetch");
 const UNISWAP_V3_FACTORY = require("@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json");
-let token0;
-let token1;
+let weth;
+let dai;
+let usdc;
+let pepe;
 let pricer;
 let swapper;
 let deployer;
@@ -19,17 +21,13 @@ async function getSigners() {
   return { deployer, user1, user2, user3 };
 }
 
-async function tokensFixture() {
-  const tokenFactory = await ethers.getContractFactory("TestERC20");
-  token0 = await tokenFactory.deploy();
-  token1 = await tokenFactory.deploy();
+async function deployTokensFixture() {
+  weth = await ethers.getContractAt("TestERC20", constants.WETH_ADDRESS);
+  dai = await ethers.getContractAt("TestERC20", constants.DAI_ADDRESS);
+  usdc = await ethers.getContractAt("TestERC20", constants.USDC_ADDRESS);
+  pepe = await ethers.getContractAt("TestERC20", constants.PEPE_ADDRESS);
 
-  for (const user of [deployer, user1, user2, user3]) {
-    await token0.mint(user.address, constants.DEFAULT_BALANCE);
-    await token1.mint(user.address, constants.DEFAULT_BALANCE);
-  }
-
-  return { token0, token1 };
+  return { weth, dai, usdc, pepe };
 }
 
 async function deployUniswapFactoryV3Fixture() {
@@ -58,9 +56,7 @@ async function deploySwapperFixture() {
 }
 
 async function deployFundFactoryFixture() {
-  // Contracts are deployed using the first signer/account by default
   await getSigners();
-
   await deployPricerFixture();
   await deploySwapperFixture();
 
@@ -70,11 +66,8 @@ async function deployFundFactoryFixture() {
 }
 
 async function deployFundFixture() {
-  // Contracts are deployed using the first signer/account by default
   await getSigners();
-
-  await tokensFixture();
-
+  await deployTokensFixture();
   await deployPricerFixture();
   await deploySwapperFixture();
 
@@ -85,21 +78,14 @@ async function deployFundFixture() {
     swapper.target,
     constants.DEFAULT_NAME,
     constants.DEFAULT_SYMBOL,
-    [token0.target, token1.target],
+    [weth.target, pepe.target],
     [50, 50],
     constants.PRICING_FEES,
     constants.USDC_ADDRESS,
     false
   );
 
-  return { fund, pricer, swapper, token0, token1, deployer, user1 };
-}
-
-async function swapTokensFixture() {
-  const weth = await ethers.getContractAt("TestERC20", constants.WETH_ADDRESS);
-  const dai = await ethers.getContractAt("TestERC20", constants.DAI_ADDRESS);
-  const usdc = await ethers.getContractAt("TestERC20", constants.USDC_ADDRESS);
-  return { weth, dai, usdc };
+  return { fund, pricer, swapper, weth, usdc, pepe };
 }
 
 function createQueryString(params) {
@@ -129,12 +115,11 @@ function encodePriceSqrt(reserve1, reserve0) {
 
 module.exports = {
   getSigners,
-  tokensFixture,
+  deployTokensFixture,
   deploySwapperFixture,
   deployPricerFixture,
   deployFundFactoryFixture,
   deployFundFixture,
-  swapTokensFixture,
   createQueryString,
   getQuote,
   encodePriceSqrt,

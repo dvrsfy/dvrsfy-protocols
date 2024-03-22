@@ -9,7 +9,7 @@ const constants = require("../utils/constants");
 
 const {
   getSigners,
-  tokensFixture,
+  deployTokensFixture,
   deployFundFactoryFixture,
   deployFundFixture,
 } = require("./Fixtures.js");
@@ -28,9 +28,9 @@ describe("FundFactory Unit", function () {
         deployFundFactoryFixture
       );
 
-      const { token0, token1 } = await loadFixture(tokensFixture);
+      const { weth, pepe } = await loadFixture(deployTokensFixture);
 
-      const default_assets = [token0.target, token1.target];
+      const default_assets = [weth.target, pepe.target];
       const tx = await fundFactory.createFund(
         constants.DEFAULT_NAME,
         constants.DEFAULT_SYMBOL,

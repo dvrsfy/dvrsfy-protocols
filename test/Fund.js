@@ -6,10 +6,9 @@ const { expect } = require("chai");
 const constants = require("../utils/constants");
 
 const {
-  tokensFixture,
-  deployFundFactoryFixture,
   deployFundFixture,
-  swapTokensFixture,
+  deployFundFactoryFixture,
+  deployTokensFixture,
 } = require("./Fixtures.js");
 
 describe("Fund Unit", function () {
@@ -19,9 +18,9 @@ describe("Fund Unit", function () {
         deployFundFactoryFixture
       );
 
-      const { token0, token1 } = await loadFixture(tokensFixture);
+      const { weth, pepe } = await loadFixture(deployTokensFixture);
 
-      const default_assets = [token0.target, token1.target];
+      const default_assets = [weth.target, pepe.target];
       const tx = await fundFactory.createFund(
         constants.DEFAULT_NAME,
         constants.DEFAULT_SYMBOL,
@@ -59,83 +58,31 @@ describe("Fund Unit", function () {
     it("Should close a fund", async function () {
       const { fund } = await loadFixture(deployFundFixture);
 
-      await fund.closeFund();
+      await fund.openFund();
 
       await expect(fund.closeFund()).to.emit(fund, "FundClosed");
     });
   });
 
   describe("Investments", function () {
-    it("Should invest one token in a fund", async function () {
-      const { fund, pricer, token0, token1, deployer } = await loadFixture(
-        deployFundFixture
-      );
-      const { usdc } = await loadFixture(swapTokensFixture);
+    it("Should invest in a fund", async function () {
+      const { usdc } = await loadFixture(deployTokensFixture);
+      const { fund, pricer } = await loadFixture(deployFundFixture);
 
       await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [constants.USDC_HOLDER],
+        params: [constants.WHALE],
       });
-      const usdc_holder = await ethers.getSigner(constants.USDC_HOLDER);
 
-      await usdc
-        .connect(usdc_holder)
-        .approve(fund.target, constants.DEFAULT_SHARES);
+      const whale = await ethers.getSigner(constants.WHALE);
+
+      await usdc.connect(whale).approve(fund.target, constants.DEFAULT_SHARES);
 
       await expect(
         fund
-          .connect(usdc_holder)
-          .invest(
-            pricer.target,
-            constants.DEFAULT_SHARES,
-            constants.USDC_ADDRESS
-          )
-      )
-        .to.emit(fund, "Investment")
-        .withArgs(usdc_holder, constants.DEFAULT_SHARES);
-    });
-
-    it("Should invest two tokens in a fund", async function () {
-      const { fundFactory, pricer, swapper, deployer, user1 } =
-        await loadFixture(deployFundFactoryFixture);
-
-      const { weth, dai, usdc } = await loadFixture(swapTokensFixture);
-
-      await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [constants.USDC_HOLDER],
-      });
-      const usdc_holder = await ethers.getSigner(constants.USDC_HOLDER);
-
-      const fund = await fundFactory.createFund(
-        constants.DEFAULT_NAME,
-        constants.DEFAULT_SYMBOL,
-        [usdc, weth],
-        constants.DEFAULT_ALLOCATIONS,
-        constants.PRICING_FEES,
-        constants.USDC_ADDRESS,
-        constants.DEFAULT_VARIABLE_ALLOCATIONS
-      );
-
-      // console.log(usdc);
-      // console.log(usdc_holder);
-      console.log(fund);
-
-      // await usdc
-      //   .connect(usdc_holder)
-      //   .approve(fund.target, constants.DEFAULT_SHARES);
-
-      //   await expect(
-      //     fund
-      //       .connect(usdc_holder)
-      //       .invest(
-      //         pricer.target,
-      //         constants.DEFAULT_SHARES,
-      //         constants.USDC_ADDRESS
-      //       )
-      //   )
-      //     .to.emit(fund, "Investment")
-      //     .withArgs(usdc_holder, constants.DEFAULT_SHARES);
+          .connect(whale)
+          .invest(pricer.target, constants.DEFAULT_SHARES, usdc)
+      ).to.emit(fund, "Investment");
     });
   });
 });

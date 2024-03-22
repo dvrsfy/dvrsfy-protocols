@@ -69,7 +69,6 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
             _shares = IERC20(assets[i]).balanceOf(address(this)) * prices[i];
         }
         _shares = _shares / totalSupply();
-        console.log(_shares);
         return _shares;
     }
 
@@ -77,8 +76,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         IDvrsfyPricer _pricer,
         uint256 _amount,
         address _token
-    ) public payable fundIsOpen {
-        if (_amount == 0) revert("Implement custom error");
+    ) public fundIsOpen {
         IERC20(_token).transferFrom(msg.sender, address(this), _amount);
         uint256 _investment = _amount;
         if (_token != assets[0]) {

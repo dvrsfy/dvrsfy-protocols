@@ -20,7 +20,7 @@ interface IDvrsfyFund {
         IDvrsfyPricer _pricer,
         uint256 _amount,
         address _token
-    ) external payable;
+    ) external;
 
     function divest() external;
 
