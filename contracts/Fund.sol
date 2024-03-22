@@ -23,6 +23,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     address public swapper;
     address public baseToken;
     uint256 constant FUND_DECIMALS = 18;
+    mapping(address => bool) public fundAssets;
 
     constructor(
         address _owner,
@@ -42,6 +43,12 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         if (_allocations.length != assetsLength)
             revert IncorrectParameters(_assets, _allocations);
         assets = _assets;
+        for (uint256 i = 0; i < assetsLength; ) {
+            fundAssets[_assets[i]] = true;
+            unchecked {
+                i++;
+            }
+        }
         allocations = _allocations;
         baseToken = _baseToken;
         pricingFees = _pricingFees;
@@ -85,7 +92,8 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         uint256 _amount,
         address _token
     ) public fundIsOpen {
-        IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        if (!fundAssets[_token]) revert InvalidInvestment(_token);
+        // IERC20(_token).transferFrom(msg.sender, address(this), _amount);
         uint256 _investment = _amount / 10 ** IERC20Decimals(_token).decimals();
         if (_token != assets[0]) {
             // get price of _token in terms of assets[0]

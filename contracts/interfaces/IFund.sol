@@ -8,6 +8,7 @@ interface IDvrsfyFund {
     error InsuffucientAssets();
     error IncorrectAllocation(uint256, uint256);
     error IncorrectParameters(address[], uint256[]);
+    error InvalidInvestment(address);
     error NewInvestmentsClosed();
     error Unauthorized(address);
     error TooManyAssets(uint256);
