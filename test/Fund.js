@@ -77,7 +77,7 @@ describe("Fund Unit", function () {
       const weth_holder = await ethers.getSigner(constants.WETH_HOLDER);
 
       await expect(
-        fund.connect(weth_holder).invest(pricer.target, {
+        fund.connect(weth_holder).buyShares(pricer.target, {
           value: constants.DEFAULT_INVESTMENT,
         })
       )
@@ -98,7 +98,7 @@ describe("Fund Unit", function () {
 
       await fund
         .connect(whale)
-        .invest(pricer.target, { value: constants.DEFAULT_INVESTMENT });
+        .buyShares(pricer.target, { value: constants.DEFAULT_INVESTMENT });
 
       await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
@@ -108,20 +108,12 @@ describe("Fund Unit", function () {
       const cetacean = await ethers.getSigner(constants.CETACEAN);
 
       await expect(
-        fund.connect(cetacean).invest(pricer.target, {
+        fund.connect(cetacean).buyShares(pricer.target, {
           value: (constants.DEFAULT_INVESTMENT / 2).toString(),
         })
       )
         .to.emit(fund, "Investment")
         .withArgs(cetacean.address, BigInt(constants.DEFAULT_SHARES / 2));
-
-      // await expect(
-      //   fund
-      //     .connect(cetacean)
-      //     .invest(pricer.target, constants.DEFAULT_INVESTMENT / 2, weth)
-      // )
-      //   .to.emit(fund, "Investment")
-      //   .withArgs(cetacean.address, (constants.DEFAULT_SHARES / 2).toString());
     });
   });
 });

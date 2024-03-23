@@ -8,7 +8,7 @@ interface IDvrsfyFund {
     error InsuffucientAssets();
     error IncorrectAllocation(uint256, uint256);
     error IncorrectParameters(address[], uint256[]);
-    error InvalidInvestment(address);
+    error InvestmentInsufficient();
     error NewInvestmentsClosed();
     error Unauthorized(address);
     error TooManyAssets(uint256);
@@ -17,7 +17,9 @@ interface IDvrsfyFund {
     event FundClosed();
     event Investment(address indexed investor, uint256 shares);
 
-    function invest(IDvrsfyPricer _pricer) external payable;
+    function buyShares(IDvrsfyPricer _pricer) external payable;
+
+    function sellShares() external;
 
     function divest() external;
 

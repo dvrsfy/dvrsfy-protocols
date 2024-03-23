@@ -89,7 +89,8 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         return _shares;
     }
 
-    function invest(IDvrsfyPricer _pricer) public payable fundIsOpen {
+    function buyShares(IDvrsfyPricer _pricer) public payable fundIsOpen {
+        if (msg.value == 0) revert InvestmentInsufficient();
         uint256 _investment = msg.value;
         uint256 _shares = calculateShares(_pricer, _investment);
         // Swap funds for assets
@@ -97,6 +98,8 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         _mint(msg.sender, _shares);
         emit Investment(msg.sender, _shares);
     }
+
+    function sellShares() external {}
 
     function divest() external {}
 
