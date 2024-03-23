@@ -81,8 +81,7 @@ async function deployFundFixture() {
     [weth.target, pepe.target],
     [50, 50],
     constants.PRICING_FEES,
-    constants.USDC_ADDRESS,
-    false
+    constants.USDC_ADDRESS
   );
 
   return { fund, pricer, swapper, weth, usdc, pepe };

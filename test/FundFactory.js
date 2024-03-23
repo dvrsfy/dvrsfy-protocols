@@ -37,8 +37,7 @@ describe("FundFactory Unit", function () {
         default_assets,
         constants.DEFAULT_ALLOCATIONS,
         constants.PRICING_FEES,
-        constants.USDC_ADDRESS,
-        constants.DEFAULT_VARIABLE_ALLOCATIONS
+        constants.USDC_ADDRESS
       );
 
       await expect(tx)
@@ -52,8 +51,7 @@ describe("FundFactory Unit", function () {
           default_assets,
           constants.DEFAULT_ALLOCATIONS,
           constants.PRICING_FEES,
-          constants.USDC_ADDRESS,
-          constants.DEFAULT_VARIABLE_ALLOCATIONS
+          constants.USDC_ADDRESS
         );
     });
   });

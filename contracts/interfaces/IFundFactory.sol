@@ -11,8 +11,7 @@ interface IDvrsfyFundFactory {
         address[],
         uint256[],
         uint24[],
-        address,
-        bool
+        address
     );
 
     event PricerUpdated(address);
@@ -27,8 +26,7 @@ interface IDvrsfyFundFactory {
         address[] memory _assets,
         uint256[] memory _allocations,
         uint24[] memory _pricingFees,
-        address _baseToken,
-        bool _variableAllocation
+        address _baseToken
     ) external returns (address fund);
 
     function updatePricer(address _pricer) external;

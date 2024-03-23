@@ -34,8 +34,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         address[] memory _assets,
         uint256[] memory _allocations,
         uint24[] memory _pricingFees,
-        address _baseToken,
-        bool _variableAllocation
+        address _baseToken
     ) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(_owner) {
         uint256 assetsLength = _assets.length;
         if (assetsLength > maxAssets) revert TooManyAssets(assetsLength);
@@ -52,7 +51,6 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         allocations = _allocations;
         baseToken = _baseToken;
         pricingFees = _pricingFees;
-        variableAllocation = _variableAllocation;
         openForInvestments = true;
     }
 
@@ -104,10 +102,6 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     function divest() external {}
 
     function rebalance() external {}
-
-    function freezeAllocation() public onlyOwner {
-        variableAllocation = true;
-    }
 
     function closeFund() external onlyOwner {
         openForInvestments = false;

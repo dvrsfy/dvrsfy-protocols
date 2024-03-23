@@ -25,8 +25,6 @@ interface IDvrsfyFund {
 
     function rebalance() external;
 
-    function freezeAllocation() external;
-
     function closeFund() external;
 
     function openFund() external;

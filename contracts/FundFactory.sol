@@ -23,8 +23,7 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
         address[] memory _assets,
         uint256[] memory _allocations,
         uint24[] memory _pricingFees,
-        address _baseToken,
-        bool _variableAllocation
+        address _baseToken
     ) external returns (address fund) {
         fund = address(
             new DvrsfyFund{salt: keccak256(abi.encodePacked(block.timestamp))}(
@@ -36,8 +35,7 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
                 _assets,
                 _allocations,
                 _pricingFees,
-                _baseToken,
-                _variableAllocation
+                _baseToken
             )
         );
         funds.push(fund);
@@ -50,8 +48,7 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
             _assets,
             _allocations,
             _pricingFees,
-            _baseToken,
-            _variableAllocation
+            _baseToken
         );
     }
 
