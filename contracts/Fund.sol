@@ -21,7 +21,6 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     address public pricer;
     address public swapper;
     address public baseToken;
-    uint256 constant FUND_DECIMALS = 18;
     mapping(address => bool) public investmentTokens;
 
     constructor(
@@ -80,6 +79,8 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     }
 
     function sellShares() external {}
+
+    function invest() external {}
 
     function divest() external {}
 

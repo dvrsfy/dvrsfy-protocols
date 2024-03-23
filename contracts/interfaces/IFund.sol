@@ -21,6 +21,8 @@ interface IDvrsfyFund {
 
     function sellShares() external;
 
+    function invest(address _token, uint256 _amount) external;
+
     function divest() external;
 
     function rebalance() external;
