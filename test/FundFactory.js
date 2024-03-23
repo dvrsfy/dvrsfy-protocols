@@ -35,7 +35,6 @@ describe("FundFactory Unit", function () {
         constants.DEFAULT_NAME,
         constants.DEFAULT_SYMBOL,
         default_assets,
-        constants.DEFAULT_ALLOCATIONS,
         constants.PRICING_FEES,
         constants.USDC_ADDRESS
       );
@@ -49,7 +48,6 @@ describe("FundFactory Unit", function () {
           constants.DEFAULT_NAME,
           constants.DEFAULT_SYMBOL,
           default_assets,
-          constants.DEFAULT_ALLOCATIONS,
           constants.PRICING_FEES,
           constants.USDC_ADDRESS
         );

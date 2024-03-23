@@ -21,7 +21,6 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
         string calldata _name,
         string calldata _symbol,
         address[] memory _assets,
-        uint256[] memory _allocations,
         uint24[] memory _pricingFees,
         address _baseToken
     ) external returns (address fund) {
@@ -33,7 +32,6 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
                 _name,
                 _symbol,
                 _assets,
-                _allocations,
                 _pricingFees,
                 _baseToken
             )
@@ -46,7 +44,6 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
             _name,
             _symbol,
             _assets,
-            _allocations,
             _pricingFees,
             _baseToken
         );

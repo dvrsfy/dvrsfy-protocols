@@ -9,7 +9,6 @@ interface IDvrsfyFundFactory {
         string,
         string,
         address[],
-        uint256[],
         uint24[],
         address
     );
@@ -24,7 +23,6 @@ interface IDvrsfyFundFactory {
         string calldata _name,
         string calldata _symbol,
         address[] memory _assets,
-        uint256[] memory _allocations,
         uint24[] memory _pricingFees,
         address _baseToken
     ) external returns (address fund);

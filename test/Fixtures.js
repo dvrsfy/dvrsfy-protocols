@@ -79,7 +79,6 @@ async function deployFundFixture() {
     constants.DEFAULT_NAME,
     constants.DEFAULT_SYMBOL,
     [weth.target, pepe.target],
-    [50, 50],
     constants.PRICING_FEES,
     constants.USDC_ADDRESS
   );

@@ -16,7 +16,6 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     uint256[] public allocations;
     uint24[] public pricingFees;
     IUniswapV3Pool[] public pricingPools;
-    bool public variableAllocation;
     bool public openForInvestments;
     uint256 public maxAssets = 10;
     address public pricer;
@@ -32,15 +31,12 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         string memory _name,
         string memory _symbol,
         address[] memory _assets,
-        uint256[] memory _allocations,
         uint24[] memory _pricingFees,
         address _baseToken
     ) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(_owner) {
         uint256 assetsLength = _assets.length;
         if (assetsLength > maxAssets) revert TooManyAssets(assetsLength);
         if (assetsLength == 0) revert InsuffucientAssets();
-        if (_allocations.length != assetsLength)
-            revert IncorrectParameters(_assets, _allocations);
         assets = _assets;
         for (uint256 i = 0; i < assetsLength; ) {
             investmentTokens[_assets[i]] = true;
@@ -48,7 +44,6 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
                 i++;
             }
         }
-        allocations = _allocations;
         baseToken = _baseToken;
         pricingFees = _pricingFees;
         openForInvestments = true;
