@@ -111,7 +111,7 @@ describe("Fund Unit", function () {
     });
   });
 
-  describe("Shares", function () {
+  describe("Investments and Divestments", function () {
     it("the fund manager should be able to invest", async function () {
       const { pepe, weth } = await loadFixture(deployTokensFixture);
       const { fund } = await loadFixture(deployFundFixture);
@@ -143,6 +143,41 @@ describe("Fund Unit", function () {
         constants.DEFAULT_SWAP_PARAMS,
       ];
       await expect(fund.connect(anyone).invest(tokens, amounts, swapParams))
+        .to.be.revertedWithCustomError(fund, "Unauthorized")
+        .withArgs(anyone.address);
+    });
+
+    it("the fund manager should be able to divest fund assets", async function () {
+      const { pepe, weth } = await loadFixture(deployTokensFixture);
+      const { fund } = await loadFixture(deployFundFixture);
+      const tokens = [pepe.target, weth.target];
+      const amounts = [
+        constants.DEFAULT_INVESTMENT,
+        constants.DEFAULT_INVESTMENT,
+      ];
+      const swapParams = [
+        constants.DEFAULT_SWAP_PARAMS,
+        constants.DEFAULT_SWAP_PARAMS,
+      ];
+      await expect(fund.divest(tokens, amounts, swapParams))
+        .to.emit(fund, "Divestment")
+        .withArgs(tokens, amounts);
+    });
+
+    it("anyone cannot divest fund assets", async function () {
+      const { pepe, weth } = await loadFixture(deployTokensFixture);
+      const { anyone } = await getSigners();
+      const { fund } = await loadFixture(deployFundFixture);
+      const tokens = [pepe.target, weth.target];
+      const amounts = [
+        constants.DEFAULT_INVESTMENT,
+        constants.DEFAULT_INVESTMENT,
+      ];
+      const swapParams = [
+        constants.DEFAULT_SWAP_PARAMS,
+        constants.DEFAULT_SWAP_PARAMS,
+      ];
+      await expect(fund.connect(anyone).divest(tokens, amounts, swapParams))
         .to.be.revertedWithCustomError(fund, "Unauthorized")
         .withArgs(anyone.address);
     });

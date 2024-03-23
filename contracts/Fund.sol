@@ -94,9 +94,13 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         emit Investment(_tokens, _amounts);
     }
 
-    function divest() external {}
-
-    function rebalance() external {}
+    function divest(
+        address[] calldata _tokens,
+        uint256[] calldata _amounts,
+        IDvrsfySwapper.SwapParams[] calldata _swapParams
+    ) external fundManagerOnly {
+        emit Divestment(_tokens, _amounts);
+    }
 
     function closeFund() external onlyOwner {
         openForInvestments = false;
@@ -107,8 +111,4 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         openForInvestments = true;
         emit FundOpened();
     }
-
-    fallback() external payable {}
-
-    receive() external payable {}
 }

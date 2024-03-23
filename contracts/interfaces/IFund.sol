@@ -14,10 +14,11 @@ interface IDvrsfyFund {
     error Unauthorized(address);
     error TooManyAssets(uint256);
 
+    event Divestment(address[] _tokens, uint256[] _amounts);
     event FundOpened();
     event FundClosed();
-    event SharesBought(address indexed investor, uint256 shares);
     event Investment(address[] _tokens, uint256[] _amounts);
+    event SharesBought(address indexed investor, uint256 shares);
 
     function buyShares(IDvrsfyPricer _pricer) external payable;
 
@@ -29,9 +30,11 @@ interface IDvrsfyFund {
         IDvrsfySwapper.SwapParams[] calldata _swapParams
     ) external;
 
-    function divest() external;
-
-    function rebalance() external;
+    function divest(
+        address[] calldata _tokens,
+        uint256[] calldata _amounts,
+        IDvrsfySwapper.SwapParams[] calldata _swapParams
+    ) external;
 
     function closeFund() external;
 
