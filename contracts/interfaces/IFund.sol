@@ -17,11 +17,7 @@ interface IDvrsfyFund {
     event FundClosed();
     event Investment(address indexed investor, uint256 shares);
 
-    function invest(
-        IDvrsfyPricer _pricer,
-        uint256 _amount,
-        address _token
-    ) external;
+    function invest(IDvrsfyPricer _pricer) external payable;
 
     function divest() external;
 

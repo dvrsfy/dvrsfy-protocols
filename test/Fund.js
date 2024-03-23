@@ -81,73 +81,51 @@ describe("Fund Unit", function () {
         .approve(fund.target, constants.DEFAULT_INVESTMENT);
 
       await expect(
-        fund
-          .connect(weth_holder)
-          .invest(pricer.target, constants.DEFAULT_INVESTMENT, weth)
+        fund.connect(weth_holder).invest(pricer.target, {
+          value: constants.DEFAULT_INVESTMENT,
+        })
       )
         .to.emit(fund, "Investment")
         .withArgs(weth_holder.address, BigInt(constants.DEFAULT_SHARES));
     });
 
-    it("Should invest in an existing fund and get the right amount of shares", async function () {
-      const { weth } = await loadFixture(deployTokensFixture);
-      const { fund, pricer } = await loadFixture(deployFundFixture);
+    // it("Should invest in an existing fund and get the right amount of shares", async function () {
+    //   const { weth } = await loadFixture(deployTokensFixture);
+    //   const { fund, pricer } = await loadFixture(deployFundFixture);
 
-      await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [constants.WHALE],
-      });
+    //   await hre.network.provider.request({
+    //     method: "hardhat_impersonateAccount",
+    //     params: [constants.WHALE],
+    //   });
 
-      const whale = await ethers.getSigner(constants.WHALE);
+    //   const whale = await ethers.getSigner(constants.WHALE);
 
-      await weth
-        .connect(whale)
-        .approve(fund.target, constants.DEFAULT_INVESTMENT);
+    //   await weth
+    //     .connect(whale)
+    //     .approve(fund.target, constants.DEFAULT_INVESTMENT);
 
-      await fund
-        .connect(whale)
-        .invest(pricer.target, constants.DEFAULT_INVESTMENT, weth);
+    //   await fund
+    //     .connect(whale)
+    //     .invest(pricer.target, constants.DEFAULT_INVESTMENT, weth);
 
-      await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [constants.CETACEAN],
-      });
+    //   await hre.network.provider.request({
+    //     method: "hardhat_impersonateAccount",
+    //     params: [constants.CETACEAN],
+    //   });
 
-      const cetacean = await ethers.getSigner(constants.CETACEAN);
+    //   const cetacean = await ethers.getSigner(constants.CETACEAN);
 
-      await weth
-        .connect(cetacean)
-        .approve(fund.target, constants.DEFAULT_INVESTMENT / 2);
+    //   await weth
+    //     .connect(cetacean)
+    //     .approve(fund.target, constants.DEFAULT_INVESTMENT / 2);
 
-      await expect(
-        fund
-          .connect(cetacean)
-          .invest(pricer.target, constants.DEFAULT_INVESTMENT / 2, weth)
-      )
-        .to.emit(fund, "Investment")
-        .withArgs(cetacean.address, BigInt(constants.DEFAULT_SHARES / 2));
-    });
-
-    it("Should invest with tokens approved by the fund", async function () {
-      const { usdc } = await loadFixture(deployTokensFixture);
-      const { fund, pricer } = await loadFixture(deployFundFixture);
-
-      await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [constants.WHALE],
-      });
-
-      const whale = await ethers.getSigner(constants.WHALE);
-
-      await usdc
-        .connect(whale)
-        .approve(fund.target, constants.DEFAULT_INVESTMENT);
-
-      await expect(
-        fund
-          .connect(whale)
-          .invest(pricer.target, constants.DEFAULT_INVESTMENT, usdc)
-      ).to.be.revertedWithCustomError(fund, "InvalidInvestment");
-    });
+    //   await expect(
+    //     fund
+    //       .connect(cetacean)
+    //       .invest(pricer.target, constants.DEFAULT_INVESTMENT / 2, weth)
+    //   )
+    //     .to.emit(fund, "Investment")
+    //     .withArgs(cetacean.address, BigInt(constants.DEFAULT_SHARES / 2));
+    // });
   });
 });

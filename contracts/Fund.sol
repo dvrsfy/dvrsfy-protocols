@@ -23,7 +23,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     address public swapper;
     address public baseToken;
     uint256 constant FUND_DECIMALS = 18;
-    mapping(address => bool) public fundAssets;
+    mapping(address => bool) public investmentTokens;
 
     constructor(
         address _owner,
@@ -44,7 +44,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
             revert IncorrectParameters(_assets, _allocations);
         assets = _assets;
         for (uint256 i = 0; i < assetsLength; ) {
-            fundAssets[_assets[i]] = true;
+            investmentTokens[_assets[i]] = true;
             unchecked {
                 i++;
             }
@@ -74,7 +74,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         );
 
         if (_totalSupply == 0) {
-            _shares = _investment * 10 ** FUND_DECIMALS;
+            _shares = _investment;
         } else {
             for (uint256 i = 0; i < assets.length; i++) {
                 // Need to normalize the price to the same decimals as the asset
@@ -87,18 +87,8 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         return _shares;
     }
 
-    function invest(
-        IDvrsfyPricer _pricer,
-        uint256 _amount,
-        address _token
-    ) public fundIsOpen {
-        if (!fundAssets[_token]) revert InvalidInvestment(_token);
-        IERC20(_token).transferFrom(msg.sender, address(this), _amount);
-        uint256 _investment = _amount / 10 ** IERC20Decimals(_token).decimals();
-        if (_token != assets[0]) {
-            // get price of _token in terms of assets[0]
-            // _investment = getPrice(_token);
-        }
+    function invest(IDvrsfyPricer _pricer) public payable fundIsOpen {
+        uint256 _investment = msg.value;
         uint256 _shares = calculateShares(_pricer, _investment);
         // Swap funds for assets
         // IDvrsfySwapper.swap(assets, _shares);
