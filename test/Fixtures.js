@@ -78,8 +78,6 @@ async function deployFundFixture() {
     swapper.target,
     constants.DEFAULT_NAME,
     constants.DEFAULT_SYMBOL,
-    [weth.target, pepe.target],
-    constants.PRICING_FEES,
     constants.USDC_ADDRESS
   );
 

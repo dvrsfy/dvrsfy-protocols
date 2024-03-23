@@ -34,8 +34,6 @@ describe("FundFactory Unit", function () {
       const tx = await fundFactory.createFund(
         constants.DEFAULT_NAME,
         constants.DEFAULT_SYMBOL,
-        default_assets,
-        constants.PRICING_FEES,
         constants.USDC_ADDRESS
       );
 
@@ -47,8 +45,6 @@ describe("FundFactory Unit", function () {
           swapper,
           constants.DEFAULT_NAME,
           constants.DEFAULT_SYMBOL,
-          default_assets,
-          constants.PRICING_FEES,
           constants.USDC_ADDRESS
         );
     });

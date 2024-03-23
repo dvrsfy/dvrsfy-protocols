@@ -30,22 +30,9 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         address _swapper,
         string memory _name,
         string memory _symbol,
-        address[] memory _assets,
-        uint24[] memory _pricingFees,
         address _baseToken
     ) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(_owner) {
-        uint256 assetsLength = _assets.length;
-        if (assetsLength > maxAssets) revert TooManyAssets(assetsLength);
-        if (assetsLength == 0) revert InsuffucientAssets();
-        assets = _assets;
-        for (uint256 i = 0; i < assetsLength; ) {
-            investmentTokens[_assets[i]] = true;
-            unchecked {
-                i++;
-            }
-        }
         baseToken = _baseToken;
-        pricingFees = _pricingFees;
         openForInvestments = true;
     }
 

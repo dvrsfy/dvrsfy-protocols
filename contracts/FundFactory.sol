@@ -20,8 +20,6 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
     function createFund(
         string calldata _name,
         string calldata _symbol,
-        address[] memory _assets,
-        uint24[] memory _pricingFees,
         address _baseToken
     ) external returns (address fund) {
         fund = address(
@@ -31,8 +29,6 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
                 swapper,
                 _name,
                 _symbol,
-                _assets,
-                _pricingFees,
                 _baseToken
             )
         );
@@ -43,8 +39,6 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
             swapper,
             _name,
             _symbol,
-            _assets,
-            _pricingFees,
             _baseToken
         );
     }
