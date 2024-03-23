@@ -6,10 +6,12 @@ const { expect } = require("chai");
 const constants = require("../utils/constants");
 
 const {
+  getSigners,
   deployFundFixture,
   deployFundFactoryFixture,
   deployTokensFixture,
 } = require("./Fixtures.js");
+const { any } = require("hardhat/internal/core/params/argumentTypes.js");
 
 describe("Fund Unit", function () {
   describe("Deployment", function () {
@@ -56,8 +58,8 @@ describe("Fund Unit", function () {
     });
   });
 
-  describe("Investments", function () {
-    it("Should invest in a fund and get shares", async function () {
+  describe("Shares", function () {
+    it("Should have the right balance when buying shares", async function () {
       const { weth } = await loadFixture(deployTokensFixture);
       const { fund, pricer } = await loadFixture(deployFundFixture);
 
@@ -73,11 +75,11 @@ describe("Fund Unit", function () {
           value: constants.DEFAULT_INVESTMENT,
         })
       )
-        .to.emit(fund, "Investment")
+        .to.emit(fund, "SharesBought")
         .withArgs(weth_holder.address, BigInt(constants.DEFAULT_SHARES));
     });
 
-    it("Should invest in an existing fund and get the right amount of shares", async function () {
+    it("Should have the right amount of shares when buying in a fund with an ETH balance", async function () {
       const { weth } = await loadFixture(deployTokensFixture);
       const { fund, pricer } = await loadFixture(deployFundFixture);
 
@@ -104,8 +106,45 @@ describe("Fund Unit", function () {
           value: (constants.DEFAULT_INVESTMENT / 2).toString(),
         })
       )
-        .to.emit(fund, "Investment")
+        .to.emit(fund, "SharesBought")
         .withArgs(cetacean.address, BigInt(constants.DEFAULT_SHARES / 2));
+    });
+  });
+
+  describe("Shares", function () {
+    it("the fund manager should be able to invest", async function () {
+      const { pepe, weth } = await loadFixture(deployTokensFixture);
+      const { fund } = await loadFixture(deployFundFixture);
+      const tokens = [pepe.target, weth.target];
+      const amounts = [
+        constants.DEFAULT_INVESTMENT,
+        constants.DEFAULT_INVESTMENT,
+      ];
+      const swapParams = [
+        constants.DEFAULT_SWAP_PARAMS,
+        constants.DEFAULT_SWAP_PARAMS,
+      ];
+      await expect(fund.invest(tokens, amounts, swapParams))
+        .to.emit(fund, "Investment")
+        .withArgs(tokens, amounts);
+    });
+
+    it("anyone cannot invest the fund assets", async function () {
+      const { pepe, weth } = await loadFixture(deployTokensFixture);
+      const { anyone } = await getSigners();
+      const { fund } = await loadFixture(deployFundFixture);
+      const tokens = [pepe.target, weth.target];
+      const amounts = [
+        constants.DEFAULT_INVESTMENT,
+        constants.DEFAULT_INVESTMENT,
+      ];
+      const swapParams = [
+        constants.DEFAULT_SWAP_PARAMS,
+        constants.DEFAULT_SWAP_PARAMS,
+      ];
+      await expect(fund.connect(anyone).invest(tokens, amounts, swapParams))
+        .to.be.revertedWithCustomError(fund, "Unauthorized")
+        .withArgs(anyone.address);
     });
   });
 });

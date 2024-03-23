@@ -21,7 +21,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     address public pricer;
     address public swapper;
     address public baseToken;
-    mapping(address => bool) public investmentTokens;
+    address public fundManager;
 
     constructor(
         address _owner,
@@ -31,12 +31,18 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         string memory _symbol,
         address _baseToken
     ) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(_owner) {
+        fundManager = _owner;
         baseToken = _baseToken;
         openForInvestments = true;
     }
 
     modifier fundIsOpen() {
         if (!openForInvestments) revert NewInvestmentsClosed();
+        _;
+    }
+
+    modifier fundManagerOnly() {
+        if (msg.sender != fundManager) revert Unauthorized(msg.sender);
         _;
     }
 
@@ -75,12 +81,18 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         // Swap funds for assets
         // IDvrsfySwapper.swap(assets, _shares);
         _mint(msg.sender, _shares);
-        emit Investment(msg.sender, _shares);
+        emit SharesBought(msg.sender, _shares);
     }
 
     function sellShares() external {}
 
-    function invest() external {}
+    function invest(
+        address[] calldata _tokens,
+        uint256[] calldata _amounts,
+        IDvrsfySwapper.SwapParams[] calldata _swapParams
+    ) external fundManagerOnly {
+        emit Investment(_tokens, _amounts);
+    }
 
     function divest() external {}
 

@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "./IPricer.sol";
+import "./ISwapper.sol";
 
 interface IDvrsfyFund {
     error InsuffucientAssets();
@@ -15,13 +16,18 @@ interface IDvrsfyFund {
 
     event FundOpened();
     event FundClosed();
-    event Investment(address indexed investor, uint256 shares);
+    event SharesBought(address indexed investor, uint256 shares);
+    event Investment(address[] _tokens, uint256[] _amounts);
 
     function buyShares(IDvrsfyPricer _pricer) external payable;
 
     function sellShares() external;
 
-    function invest(address _token, uint256 _amount) external;
+    function invest(
+        address[] calldata _tokens,
+        uint256[] calldata _amounts,
+        IDvrsfySwapper.SwapParams[] calldata _swapParams
+    ) external;
 
     function divest() external;
 

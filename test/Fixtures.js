@@ -17,8 +17,8 @@ let user2;
 let user3;
 
 async function getSigners() {
-  [deployer, user1, user2, user3] = await ethers.getSigners();
-  return { deployer, user1, user2, user3 };
+  [deployer, anyone] = await ethers.getSigners();
+  return { deployer, anyone };
 }
 
 async function deployTokensFixture() {
