@@ -14,4 +14,9 @@ interface IDvrsfyPricer {
     ) external view returns (uint256[] memory _prices);
 
     function updateFactory(IUniswapV3Factory _uniswapV3Factory) external;
+
+    function getETHPrice(
+        address _baseToken,
+        uint24 _fee
+    ) external view returns (uint256 ethPrice);
 }

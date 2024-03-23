@@ -65,6 +65,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         IDvrsfyPricer _pricer,
         uint256 _investment
     ) public view returns (uint256) {
+        uint256 _fundValue = 0;
         uint256 _shares = 0;
         uint256 _totalSupply = totalSupply();
         uint256[] memory prices = _pricer.getPrices(
@@ -72,17 +73,18 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
             assets,
             pricingFees
         );
-
+        uint256 ethPrice = _pricer.getETHPrice(baseToken, 500);
         if (_totalSupply == 0) {
             _shares = _investment;
         } else {
             for (uint256 i = 0; i < assets.length; i++) {
                 // Need to normalize the price to the same decimals as the asset
-                _shares =
+                _fundValue +=
                     IERC20(assets[i]).balanceOf(address(this)) *
                     prices[i];
             }
-            _shares = _shares / totalSupply();
+            _fundValue += ethPrice * (address(this).balance - _investment);
+            _shares = (_investment * ethPrice * _totalSupply) / _fundValue;
         }
         return _shares;
     }

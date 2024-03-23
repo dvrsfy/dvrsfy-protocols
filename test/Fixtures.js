@@ -41,7 +41,7 @@ async function deployUniswapFactoryV3Fixture() {
 async function deployPricerFixture() {
   const { uniswapFactoryV3 } = await deployUniswapFactoryV3Fixture();
   const Pricer = await ethers.getContractFactory("DvrsfyPricer");
-  pricer = await Pricer.deploy(uniswapFactoryV3);
+  pricer = await Pricer.deploy(uniswapFactoryV3, constants.WETH_ADDRESS);
   return { pricer };
 }
 

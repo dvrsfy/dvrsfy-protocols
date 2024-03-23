@@ -11,10 +11,12 @@ import "hardhat/console.sol";
 
 contract DvrsfyPricer is IDvrsfyPricer {
     IUniswapV3Factory uniswapV3Factory;
+    address wethAddress;
 
-    constructor(IUniswapV3Factory _uniswapV3Factory) {
+    constructor(IUniswapV3Factory _uniswapV3Factory, address _wethAddress) {
         if (address(_uniswapV3Factory) == address(0)) revert InvalidFactory();
         uniswapV3Factory = _uniswapV3Factory;
+        wethAddress = _wethAddress;
     }
 
     function getPrices(
@@ -36,6 +38,19 @@ contract DvrsfyPricer is IDvrsfyPricer {
                 IERC20Decimals(IUniswapV3Pool(_pool).token0()).decimals();
             _prices[i] = (numerator1 * numerator2) / (1 << 192);
         }
+    }
+
+    function getETHPrice(
+        address _baseToken,
+        uint24 _fee
+    ) external view returns (uint256 ethPrice) {
+        // returns WETH price as eth price proxy
+        address _pool = uniswapV3Factory.getPool(_baseToken, wethAddress, _fee);
+        (uint160 _sqrtPriceX96, , , , , , ) = IUniswapV3Pool(_pool).slot0();
+        uint256 numerator1 = uint256(_sqrtPriceX96) * uint256(_sqrtPriceX96);
+        uint256 numerator2 = 10 **
+            IERC20Decimals(IUniswapV3Pool(_pool).token0()).decimals();
+        ethPrice = (numerator1 * numerator2) / (1 << 192);
     }
 
     // function getInvertedPrices(
