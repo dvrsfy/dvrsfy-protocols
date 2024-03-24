@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IWETH.sol"; // WETH9 is not v0.8 - check if compatibility issues are possible
 import "./interfaces/ISwapper.sol";
+import "hardhat/console.sol";
 
 contract DvrsfySwapper is IDvrsfySwapper {
     using SafeERC20 for IERC20;
@@ -48,10 +49,7 @@ contract DvrsfySwapper is IDvrsfySwapper {
 
         // Wrap ETH in WETH when needed
         // When sending ETH to the contract, the sellToken should be WETH
-        if (
-            address(params.sellToken) == address(WETH) &&
-            msg.value >= params.sellAmount
-        ) {
+        if (address(params.sellToken) == address(WETH)) {
             WETH.deposit{value: params.sellAmount}();
             protocolFee = msg.value - params.sellAmount;
             ethPayment = true;
@@ -70,11 +68,13 @@ contract DvrsfySwapper is IDvrsfySwapper {
                 address(params.sellToken),
                 params.spender
             );
+
         // Call the encoded swap function call on the contract at `swapTarget`,
-        // passing along any ETH attached to this function call to cover protocol fees.
-        (bool protocolFeeTransferSuccess, ) = params.swapTarget.call{
-            value: protocolFee
-        }(params.swapCallData);
+        (bool success, ) = params.swapTarget.call{value: protocolFee}(
+            params.swapCallData
+        );
+        if (!success) revert SwapFailed(params);
+
         // Use our current buyToken balance to determine how much we've bought.
         boughtAmount = params.buyToken.balanceOf(address(this));
         // Transfer the amount bought
@@ -89,10 +89,7 @@ contract DvrsfySwapper is IDvrsfySwapper {
             params.sellToken.balanceOf(address(this))
         );
         // Refund any unspent protocol fees to the sender.
-        (bool protocolFeeChangeSuccess, ) = msg.sender.call{
-            value: address(this).balance
-        }("");
-        if (!protocolFeeChangeSuccess) revert ProtocolFeeChangeTransferFailed();
+        msg.sender.call{value: address(this).balance}("");
         // Reset the approval
         params.sellToken.approve(params.spender, 0);
         emit Swap(params.sellToken, params.buyToken, boughtAmount);

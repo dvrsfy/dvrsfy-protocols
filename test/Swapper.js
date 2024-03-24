@@ -10,9 +10,7 @@ const constants = require("../utils/constants");
 const {
   deploySwapperFixture,
   deployTokensFixture,
-  createQueryString,
-  getQuote,
-  encodePriceSqrt,
+  getSwapParams,
 } = require("./Fixtures.js");
 
 describe("Swapper Unit", function () {
@@ -33,22 +31,11 @@ describe("Swapper Unit", function () {
       });
       const whale = await ethers.getSigner(constants.WHALE);
 
-      const qsUSDC = createQueryString({
-        sellToken: "DAI",
-        buyToken: "USDC",
-        sellAmount: constants.TEST_SWAP,
-      });
-
-      const quoteUSDC = await getQuote(qsUSDC);
-
-      const swapParams = {
-        sellToken: quoteUSDC.sellTokenAddress,
-        sellAmount: constants.TEST_SWAP,
-        buyToken: quoteUSDC.buyTokenAddress,
-        spender: quoteUSDC.allowanceTarget,
-        swapTarget: quoteUSDC.to,
-        swapCallData: quoteUSDC.data,
-      };
+      const swapParams = await getSwapParams(
+        constants.DAI_ADDRESS,
+        constants.USDC_ADDRESS,
+        constants.TEST_SWAP
+      );
 
       await dai.connect(whale).approve(swapper.target, constants.TEST_SWAP);
 
@@ -56,6 +43,26 @@ describe("Swapper Unit", function () {
         swapper,
         "Swap"
       );
+    });
+
+    it("Should swap in ETH", async function () {
+      const { swapper } = await loadFixture(deploySwapperFixture);
+      const { weth, dai, usdc } = await loadFixture(deployTokensFixture);
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.WHALE],
+      });
+      const whale = await ethers.getSigner(constants.WHALE);
+
+      const swapParams = await getSwapParams(
+        constants.WETH_ADDRESS,
+        constants.DAI_ADDRESS,
+        constants.TEST_SWAP
+      );
+
+      await expect(
+        swapper.connect(whale).swap(swapParams, { value: constants.TEST_SWAP })
+      ).to.emit(swapper, "Swap");
     });
   });
 });

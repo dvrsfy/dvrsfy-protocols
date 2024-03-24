@@ -66,7 +66,7 @@ async function deployFundFactoryFixture() {
 }
 
 async function deployFundFixture() {
-  await getSigners();
+  const { deployer } = await getSigners();
   await deployTokensFixture();
   await deployPricerFixture();
   await deploySwapperFixture();
@@ -81,7 +81,7 @@ async function deployFundFixture() {
     constants.USDC_ADDRESS
   );
 
-  return { fund, pricer, swapper, weth, usdc, pepe };
+  return { fund, pricer, swapper, weth, usdc, pepe, deployer };
 }
 
 function createQueryString(params) {
@@ -109,6 +109,25 @@ function encodePriceSqrt(reserve1, reserve0) {
   );
 }
 
+async function getSwapParams(sellToken, buyToken, sellAmount) {
+  const qs = createQueryString({
+    sellToken: sellToken,
+    buyToken: buyToken,
+    sellAmount: sellAmount,
+  });
+
+  const quote = await getQuote(qs);
+  const swapParams = {
+    sellToken: quote.sellTokenAddress,
+    sellAmount: quote.sellAmount,
+    buyToken: quote.buyTokenAddress,
+    spender: quote.allowanceTarget,
+    swapTarget: quote.to,
+    swapCallData: quote.data,
+  };
+  return swapParams;
+}
+
 module.exports = {
   getSigners,
   deployTokensFixture,
@@ -116,7 +135,5 @@ module.exports = {
   deployPricerFixture,
   deployFundFactoryFixture,
   deployFundFixture,
-  createQueryString,
-  getQuote,
-  encodePriceSqrt,
+  getSwapParams,
 };

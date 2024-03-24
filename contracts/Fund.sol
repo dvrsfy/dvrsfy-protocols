@@ -19,7 +19,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     bool public openForInvestments;
     uint256 public maxAssets = 10;
     address public pricer;
-    address public swapper;
+    address payable public swapper;
     address public baseToken;
     address public fundManager;
 
@@ -32,6 +32,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         address _baseToken
     ) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(_owner) {
         fundManager = _owner;
+        swapper = payable(_swapper);
         baseToken = _baseToken;
         openForInvestments = true;
     }
@@ -78,8 +79,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         if (msg.value == 0) revert InvestmentInsufficient();
         uint256 _investment = msg.value;
         uint256 _shares = calculateShares(_pricer, _investment);
-        // Swap funds for assets
-        // IDvrsfySwapper.swap(assets, _shares);
+        payable(address(this)).transfer(msg.value);
         _mint(msg.sender, _shares);
         emit SharesBought(msg.sender, _shares);
     }
@@ -89,8 +89,13 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     function invest(
         address[] calldata _tokens,
         uint256[] calldata _amounts,
+        uint256[] calldata _minAmountsBought,
         IDvrsfySwapper.SwapParams[] calldata _swapParams
     ) external fundManagerOnly {
+        for (uint256 i = 0; i < _swapParams.length; i++) {
+            _approveAndSwap(_swapParams[i], _minAmountsBought[i]);
+        }
+
         emit Investment(_tokens, _amounts);
     }
 
@@ -111,4 +116,23 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         openForInvestments = true;
         emit FundOpened();
     }
+
+    function _approveAndSwap(
+        IDvrsfySwapper.SwapParams calldata params,
+        uint256 _minAmountBought
+    ) public payable returns (uint256 _amountBought) {
+        require(
+            address(this).balance >= params.sellAmount,
+            "Insufficient balance"
+        );
+        params.sellToken.approve(address(swapper), params.sellAmount);
+        _amountBought = IDvrsfySwapper(swapper).swap{value: params.sellAmount}(
+            params
+        );
+        require(_amountBought > _minAmountBought, "Swap failed");
+    }
+
+    fallback() external payable {}
+
+    receive() external payable {}
 }

@@ -10,6 +10,7 @@ const {
   deployFundFixture,
   deployFundFactoryFixture,
   deployTokensFixture,
+  getSwapParams,
 } = require("./Fixtures.js");
 const { any } = require("hardhat/internal/core/params/argumentTypes.js");
 
@@ -20,9 +21,6 @@ describe("Fund Unit", function () {
         deployFundFactoryFixture
       );
 
-      const { weth, pepe } = await loadFixture(deployTokensFixture);
-
-      const default_assets = [weth.target, pepe.target];
       const tx = await fundFactory.createFund(
         constants.DEFAULT_NAME,
         constants.DEFAULT_SYMBOL,
@@ -113,20 +111,48 @@ describe("Fund Unit", function () {
 
   describe("Investments and Divestments", function () {
     it("the fund manager should be able to invest", async function () {
-      const { pepe, weth } = await loadFixture(deployTokensFixture);
-      const { fund } = await loadFixture(deployFundFixture);
-      const tokens = [pepe.target, weth.target];
-      const amounts = [
-        constants.DEFAULT_INVESTMENT,
-        constants.DEFAULT_INVESTMENT,
-      ];
-      const swapParams = [
-        constants.DEFAULT_SWAP_PARAMS,
-        constants.DEFAULT_SWAP_PARAMS,
-      ];
-      await expect(fund.invest(tokens, amounts, swapParams))
+      const { dai, weth } = await loadFixture(deployTokensFixture);
+      const { fund, pricer, deployer } = await loadFixture(deployFundFixture);
+
+      const tokens = [dai.target];
+      const minAmountsBought = [constants.DEFAULT_MIN_AMOUNT_BOUGHT];
+      const amounts = [constants.DEFAULT_INVESTMENT];
+      const investment = await getSwapParams(
+        constants.WETH_ADDRESS,
+        constants.DAI_ADDRESS,
+        constants.DEFAULT_INVESTMENT / 100
+      );
+
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.WHALE],
+      });
+
+      const whale = await ethers.getSigner(constants.WHALE);
+
+      await fund.connect(whale).buyShares(pricer.target, {
+        value: constants.DEFAULT_INVESTMENT.toString(),
+      });
+
+      const swapParams = [investment];
+      await expect(
+        fund
+          .connect(deployer)
+          .invest(tokens, amounts, minAmountsBought, swapParams)
+      )
         .to.emit(fund, "Investment")
         .withArgs(tokens, amounts);
+      expect(await dai.balanceOf(fund.target)).to.not.equal(0);
+      console.log(await dai.balanceOf(fund.target));
+      const fundEthBalance = (
+        await ethers.provider.getBalance(fund.target)
+      ).toString();
+      expect(fundEthBalance).to.equal(
+        (
+          constants.DEFAULT_INVESTMENT -
+          constants.DEFAULT_INVESTMENT / 100
+        ).toString()
+      );
     });
 
     it("anyone cannot invest the fund assets", async function () {
@@ -138,11 +164,19 @@ describe("Fund Unit", function () {
         constants.DEFAULT_INVESTMENT,
         constants.DEFAULT_INVESTMENT,
       ];
+      const minAmountsBought = [
+        constants.DEFAULT_MIN_AMOUNT_BOUGHT,
+        constants.DEFAULT_MIN_AMOUNT_BOUGHT,
+      ];
       const swapParams = [
         constants.DEFAULT_SWAP_PARAMS,
         constants.DEFAULT_SWAP_PARAMS,
       ];
-      await expect(fund.connect(anyone).invest(tokens, amounts, swapParams))
+      await expect(
+        fund
+          .connect(anyone)
+          .invest(tokens, amounts, minAmountsBought, swapParams)
+      )
         .to.be.revertedWithCustomError(fund, "Unauthorized")
         .withArgs(anyone.address);
     });

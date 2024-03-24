@@ -27,6 +27,7 @@ interface IDvrsfyFund {
     function invest(
         address[] calldata _tokens,
         uint256[] calldata _amounts,
+        uint256[] calldata _minAmountsBought,
         IDvrsfySwapper.SwapParams[] calldata _swapParams
     ) external;
 

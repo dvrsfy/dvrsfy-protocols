@@ -8,9 +8,11 @@ interface IDvrsfySwapper {
     error ProtocolFeeChangeTransferFailed();
     error ProtocolFeePaymentFailed();
     error TargetInvalid(address);
+    error SwapFailed(SwapParams);
     error SwapParamsInvalid(SwapParams);
 
     event Swap(IERC20 sellToken, IERC20 buyToken, uint256 boughtAmount);
+    event SwapSuccessful(SwapParams);
 
     struct SwapParams {
         // The `sellTokenAddress` field from the API response.
