@@ -143,7 +143,6 @@ describe("Fund Unit", function () {
         .to.emit(fund, "Investment")
         .withArgs(tokens, amounts);
       expect(await dai.balanceOf(fund.target)).to.not.equal(0);
-      console.log(await dai.balanceOf(fund.target));
       const fundEthBalance = (
         await ethers.provider.getBalance(fund.target)
       ).toString();
@@ -179,6 +178,38 @@ describe("Fund Unit", function () {
       )
         .to.be.revertedWithCustomError(fund, "Unauthorized")
         .withArgs(anyone.address);
+    });
+
+    it("should not invest more than the fund balance", async function () {
+      const { dai, weth } = await loadFixture(deployTokensFixture);
+      const { fund, pricer, deployer } = await loadFixture(deployFundFixture);
+
+      const tokens = [dai.target];
+      const minAmountsBought = [constants.DEFAULT_MIN_AMOUNT_BOUGHT];
+      const amounts = [constants.DEFAULT_INVESTMENT];
+      const investment = await getSwapParams(
+        constants.WETH_ADDRESS,
+        constants.DAI_ADDRESS,
+        constants.DEFAULT_INVESTMENT * 2
+      );
+
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.WHALE],
+      });
+
+      const whale = await ethers.getSigner(constants.WHALE);
+
+      await fund.connect(whale).buyShares(pricer.target, {
+        value: constants.DEFAULT_INVESTMENT.toString(),
+      });
+
+      const swapParams = [investment];
+      await expect(
+        fund
+          .connect(deployer)
+          .invest(tokens, amounts, minAmountsBought, swapParams)
+      ).to.be.revertedWithCustomError(fund, "InsufficientBalance");
     });
 
     it("the fund manager should be able to divest fund assets", async function () {

@@ -92,7 +92,13 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         uint256[] calldata _minAmountsBought,
         IDvrsfySwapper.SwapParams[] calldata _swapParams
     ) external fundManagerOnly {
+        uint256 _fundAmount = address(this).balance;
+        uint256 _totalInvestment = 0;
         for (uint256 i = 0; i < _swapParams.length; i++) {
+            _totalInvestment += _swapParams[i].sellAmount;
+            if (_totalInvestment >= _fundAmount) {
+                revert InsufficientBalance(_totalInvestment, _fundAmount);
+            }
             _approveAndSwap(_swapParams[i], _minAmountsBought[i]);
         }
 
