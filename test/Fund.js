@@ -109,14 +109,11 @@ describe("Fund Unit", function () {
 
       const protocolFee =
         (constants.DEFAULT_SHARES_INVESTMENT * constants.DEFAULT_PROTOCOL_FEE) /
-        100;
+        10000;
 
-      console.log(deployerBalanceBefore);
-      console.log(deployerBalanceAfter);
-
-      // expect(deployerBalanceAfter.toString()).to.equal(
-      //   deployerBalanceBefore.add(protocolFee).toString()
-      // );
+      expect(deployerBalanceAfter.toString()).to.equal(
+        (deployerBalanceBefore + BigInt(protocolFee)).toString()
+      );
 
       await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
