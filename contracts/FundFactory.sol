@@ -20,7 +20,8 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
     function createFund(
         string calldata _name,
         string calldata _symbol,
-        address _baseToken
+        address _baseToken,
+        address _weth
     ) external returns (address fund) {
         fund = address(
             new DvrsfyFund{salt: keccak256(abi.encodePacked(block.timestamp))}(
@@ -29,7 +30,8 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
                 swapper,
                 _name,
                 _symbol,
-                _baseToken
+                _baseToken,
+                _weth
             )
         );
         funds.push(fund);
@@ -39,7 +41,8 @@ contract DvrsfyFundFactory is IDvrsfyFundFactory, Ownable {
             swapper,
             _name,
             _symbol,
-            _baseToken
+            _baseToken,
+            _weth
         );
     }
 

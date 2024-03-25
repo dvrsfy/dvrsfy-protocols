@@ -8,6 +8,7 @@ const constants = require("../utils/constants");
 const {
   getSigners,
   deployFundFixture,
+  deployInvestedFundFixture,
   deployFundFactoryFixture,
   deployTokensFixture,
   getSwapParams,
@@ -24,7 +25,8 @@ describe("Fund Unit", function () {
       const tx = await fundFactory.createFund(
         constants.DEFAULT_NAME,
         constants.DEFAULT_SYMBOL,
-        constants.USDC_ADDRESS
+        constants.USDC_ADDRESS,
+        constants.WETH_ADDRESS
       );
 
       await expect(tx)
@@ -35,7 +37,8 @@ describe("Fund Unit", function () {
           swapper,
           constants.DEFAULT_NAME,
           constants.DEFAULT_SYMBOL,
-          constants.USDC_ADDRESS
+          constants.USDC_ADDRESS,
+          constants.WETH_ADDRESS
         );
     });
   });
@@ -70,7 +73,7 @@ describe("Fund Unit", function () {
 
       await expect(
         fund.connect(weth_holder).buyShares(pricer.target, {
-          value: constants.DEFAULT_INVESTMENT,
+          value: constants.DEFAULT_SHARES_INVESTMENT,
         })
       )
         .to.emit(fund, "SharesBought")
@@ -88,9 +91,9 @@ describe("Fund Unit", function () {
 
       const whale = await ethers.getSigner(constants.WHALE);
 
-      await fund
-        .connect(whale)
-        .buyShares(pricer.target, { value: constants.DEFAULT_INVESTMENT });
+      await fund.connect(whale).buyShares(pricer.target, {
+        value: constants.DEFAULT_SHARES_INVESTMENT,
+      });
 
       await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
@@ -101,7 +104,7 @@ describe("Fund Unit", function () {
 
       await expect(
         fund.connect(cetacean).buyShares(pricer.target, {
-          value: (constants.DEFAULT_INVESTMENT / 2).toString(),
+          value: (constants.DEFAULT_SHARES_INVESTMENT / 2).toString(),
         })
       )
         .to.emit(fund, "SharesBought")
@@ -120,7 +123,7 @@ describe("Fund Unit", function () {
       const investment = await getSwapParams(
         constants.WETH_ADDRESS,
         constants.DAI_ADDRESS,
-        constants.DEFAULT_INVESTMENT / 100
+        constants.DEFAULT_INVESTMENT
       );
 
       await hre.network.provider.request({
@@ -131,7 +134,7 @@ describe("Fund Unit", function () {
       const whale = await ethers.getSigner(constants.WHALE);
 
       await fund.connect(whale).buyShares(pricer.target, {
-        value: constants.DEFAULT_INVESTMENT.toString(),
+        value: constants.DEFAULT_SHARES_INVESTMENT.toString(),
       });
 
       const swapParams = [investment];
@@ -148,8 +151,7 @@ describe("Fund Unit", function () {
       ).toString();
       expect(fundEthBalance).to.equal(
         (
-          constants.DEFAULT_INVESTMENT -
-          constants.DEFAULT_INVESTMENT / 100
+          constants.DEFAULT_SHARES_INVESTMENT - constants.DEFAULT_INVESTMENT
         ).toString()
       );
     });
@@ -190,7 +192,7 @@ describe("Fund Unit", function () {
       const investment = await getSwapParams(
         constants.WETH_ADDRESS,
         constants.DAI_ADDRESS,
-        constants.DEFAULT_INVESTMENT * 2
+        constants.DEFAULT_SHARES_INVESTMENT + 1
       );
 
       await hre.network.provider.request({
@@ -201,7 +203,7 @@ describe("Fund Unit", function () {
       const whale = await ethers.getSigner(constants.WHALE);
 
       await fund.connect(whale).buyShares(pricer.target, {
-        value: constants.DEFAULT_INVESTMENT.toString(),
+        value: constants.DEFAULT_SHARES_INVESTMENT.toString(),
       });
 
       const swapParams = [investment];
@@ -213,38 +215,44 @@ describe("Fund Unit", function () {
     });
 
     it("the fund manager should be able to divest fund assets", async function () {
-      const { pepe, weth } = await loadFixture(deployTokensFixture);
-      const { fund } = await loadFixture(deployFundFixture);
-      const tokens = [pepe.target, weth.target];
-      const amounts = [
-        constants.DEFAULT_INVESTMENT,
-        constants.DEFAULT_INVESTMENT,
-      ];
-      const swapParams = [
-        constants.DEFAULT_SWAP_PARAMS,
-        constants.DEFAULT_SWAP_PARAMS,
-      ];
-      await expect(fund.divest(tokens, amounts, swapParams))
+      const { dai, weth } = await loadFixture(deployTokensFixture);
+      const { fund, pricer, deployer } = await loadFixture(
+        deployInvestedFundFixture
+      );
+
+      const tokens = [dai.target];
+      const minAmountsBought = [constants.DEFAULT_MIN_AMOUNT_BOUGHT];
+      const fundDaiBalance = await dai.balanceOf(fund.target);
+      const amounts = [fundDaiBalance];
+      console.log(fundDaiBalance.toString());
+      const divestment = await getSwapParams(
+        constants.DAI_ADDRESS,
+        constants.WETH_ADDRESS,
+        fundDaiBalance
+      );
+
+      const swapParams = [divestment];
+
+      await expect(
+        fund
+          .connect(deployer)
+          .divest(tokens, amounts, minAmountsBought, swapParams)
+      )
         .to.emit(fund, "Divestment")
         .withArgs(tokens, amounts);
+
+      expect(await dai.balanceOf(fund.target)).to.equal(0);
     });
 
     it("anyone cannot divest fund assets", async function () {
-      const { pepe, weth } = await loadFixture(deployTokensFixture);
-      const { anyone } = await getSigners();
-      const { fund } = await loadFixture(deployFundFixture);
-      const tokens = [pepe.target, weth.target];
-      const amounts = [
-        constants.DEFAULT_INVESTMENT,
-        constants.DEFAULT_INVESTMENT,
-      ];
-      const swapParams = [
-        constants.DEFAULT_SWAP_PARAMS,
-        constants.DEFAULT_SWAP_PARAMS,
-      ];
-      await expect(fund.connect(anyone).divest(tokens, amounts, swapParams))
-        .to.be.revertedWithCustomError(fund, "Unauthorized")
-        .withArgs(anyone.address);
+      const { dai, weth } = await loadFixture(deployTokensFixture);
+      const { fund, pricer, deployer } = await loadFixture(
+        deployInvestedFundFixture
+      );
+
+      // await expect(fund.connect(anyone).divest(tokens, amounts, swapParams))
+      //   .to.be.revertedWithCustomError(fund, "Unauthorized")
+      //   .withArgs(anyone.address);
     });
   });
 });

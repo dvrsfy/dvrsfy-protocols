@@ -8,8 +8,8 @@ import "./ISwapper.sol";
 interface IDvrsfyFund {
     error InsuffucientAssets();
     error IncorrectAllocation(uint256, uint256);
-    error IncorrectParameters(address[], uint256[]);
     error InsufficientBalance(uint256, uint256);
+    error InvalidDivestementToken(address);
     error InvestmentInsufficient();
     error MinimumAmountNotMet(uint256, uint256);
     error NewInvestmentsClosed();
@@ -36,6 +36,7 @@ interface IDvrsfyFund {
     function divest(
         address[] calldata _tokens,
         uint256[] calldata _amounts,
+        uint256[] calldata _minAmountsBought,
         IDvrsfySwapper.SwapParams[] calldata _swapParams
     ) external;
 

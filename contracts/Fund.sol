@@ -22,6 +22,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     address payable public swapper;
     address public baseToken;
     address public fundManager;
+    address public weth;
 
     constructor(
         address _owner,
@@ -29,11 +30,13 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         address _swapper,
         string memory _name,
         string memory _symbol,
-        address _baseToken
+        address _baseToken,
+        address _weth
     ) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(_owner) {
         fundManager = _owner;
         swapper = payable(_swapper);
         baseToken = _baseToken;
+        weth = _weth;
         openForInvestments = true;
     }
 
@@ -99,7 +102,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
             if (_totalInvestment >= _fundAmount) {
                 revert InsufficientBalance(_totalInvestment, _fundAmount);
             }
-            _approveAndSwap(_swapParams[i], _minAmountsBought[i]);
+            _approveAndInvest(_swapParams[i], _minAmountsBought[i]);
         }
 
         emit Investment(_tokens, _amounts);
@@ -108,8 +111,25 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     function divest(
         address[] calldata _tokens,
         uint256[] calldata _amounts,
+        uint256[] calldata _minAmountsBought,
         IDvrsfySwapper.SwapParams[] calldata _swapParams
     ) external fundManagerOnly {
+        for (uint256 i = 0; i < _swapParams.length; i++) {
+            if (_swapParams[i].buyToken != IERC20(weth))
+                revert InvalidDivestementToken(
+                    address(_swapParams[i].buyToken)
+                );
+            uint256 _fundAmount = _swapParams[i].sellToken.balanceOf(
+                address(this)
+            );
+            if (_fundAmount < _swapParams[i].sellAmount) {
+                revert InsufficientBalance(
+                    _fundAmount,
+                    _swapParams[i].sellAmount
+                );
+            }
+            _approveAndDivest(_swapParams[i], 0);
+        }
         emit Divestment(_tokens, _amounts);
     }
 
@@ -123,7 +143,19 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         emit FundOpened();
     }
 
-    function _approveAndSwap(
+    function _approveAndDivest(
+        IDvrsfySwapper.SwapParams calldata params,
+        uint256 _minAmountBought
+    ) public payable returns (uint256 _amountBought) {
+        params.sellToken.approve(address(swapper), params.sellAmount);
+        // Need to always have enough ETH to pay for the fee
+        // Need to adjust the fee to be paid from the contract
+        _amountBought = IDvrsfySwapper(swapper).swap{value: msg.value}(params);
+        if (_amountBought < _minAmountBought)
+            revert MinimumAmountNotMet(_minAmountBought, _amountBought);
+    }
+
+    function _approveAndInvest(
         IDvrsfySwapper.SwapParams calldata params,
         uint256 _minAmountBought
     ) public payable returns (uint256 _amountBought) {
