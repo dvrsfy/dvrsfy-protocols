@@ -9,7 +9,9 @@ interface IDvrsfyFundFactory {
         string,
         string,
         address,
-        address
+        address,
+        uint256,
+        uint256
     );
 
     event PricerUpdated(address);
@@ -22,7 +24,9 @@ interface IDvrsfyFundFactory {
         string calldata _name,
         string calldata _symbol,
         address _baseToken,
-        address _weth
+        address _weth,
+        uint256 _protocolFee,
+        uint256 _managementFee
     ) external returns (address fund);
 
     function updatePricer(address _pricer) external;

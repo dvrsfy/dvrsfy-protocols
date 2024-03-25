@@ -17,7 +17,10 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     uint24[] public pricingFees;
     IUniswapV3Pool[] public pricingPools;
     bool public openForInvestments;
+    uint256 public constant DIVISOR = 10000;
     uint256 public maxAssets = 10;
+    uint256 public protocolFee;
+    uint256 public managementFee;
     address public pricer;
     address payable public swapper;
     address public baseToken;
@@ -31,13 +34,17 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         string memory _name,
         string memory _symbol,
         address _baseToken,
-        address _weth
+        address _weth,
+        uint256 _protocolFee,
+        uint256 _managementFee
     ) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(_owner) {
         fundManager = _owner;
         swapper = payable(_swapper);
         baseToken = _baseToken;
         weth = _weth;
         openForInvestments = true;
+        protocolFee = _protocolFee;
+        managementFee = _managementFee;
     }
 
     modifier fundIsOpen() {
@@ -80,9 +87,10 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
 
     function buyShares(IDvrsfyPricer _pricer) public payable fundIsOpen {
         if (msg.value == 0) revert InvestmentInsufficient();
-        uint256 _investment = msg.value;
-        uint256 _shares = calculateShares(_pricer, _investment);
-        payable(address(this)).transfer(msg.value);
+        uint256 _shares = calculateShares(_pricer, msg.value);
+        uint256 _protocolFee = (msg.value * protocolFee) / DIVISOR;
+        payable(owner()).transfer(_protocolFee);
+        payable(address(this)).transfer(msg.value - _protocolFee);
         _mint(msg.sender, _shares);
         emit SharesBought(msg.sender, _shares);
     }

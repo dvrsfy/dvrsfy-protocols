@@ -35,7 +35,9 @@ describe("FundFactory Unit", function () {
         constants.DEFAULT_NAME,
         constants.DEFAULT_SYMBOL,
         constants.USDC_ADDRESS,
-        constants.WETH_ADDRESS
+        constants.WETH_ADDRESS,
+        constants.DEFAULT_PROTOCOL_FEE,
+        constants.DEFAULT_MANAGEMENT_FEE
       );
 
       await expect(tx)
@@ -47,7 +49,9 @@ describe("FundFactory Unit", function () {
           constants.DEFAULT_NAME,
           constants.DEFAULT_SYMBOL,
           constants.USDC_ADDRESS,
-          constants.WETH_ADDRESS
+          constants.WETH_ADDRESS,
+          constants.DEFAULT_PROTOCOL_FEE,
+          constants.DEFAULT_MANAGEMENT_FEE
         );
     });
   });

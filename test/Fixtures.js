@@ -79,7 +79,9 @@ async function deployFundFixture() {
     constants.DEFAULT_NAME,
     constants.DEFAULT_SYMBOL,
     constants.USDC_ADDRESS,
-    constants.WETH_ADDRESS
+    constants.WETH_ADDRESS,
+    constants.DEFAULT_PROTOCOL_FEE,
+    constants.DEFAULT_MANAGEMENT_FEE
   );
 
   return { fund, pricer, swapper, weth, usdc, pepe, deployer };
@@ -99,7 +101,9 @@ async function deployInvestedFundFixture() {
     constants.DEFAULT_NAME,
     constants.DEFAULT_SYMBOL,
     constants.USDC_ADDRESS,
-    constants.WETH_ADDRESS
+    constants.WETH_ADDRESS,
+    constants.DEFAULT_PROTOCOL_FEE,
+    constants.DEFAULT_MANAGEMENT_FEE
   );
 
   const tokens = [dai.target];

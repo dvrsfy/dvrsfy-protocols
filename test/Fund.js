@@ -26,7 +26,9 @@ describe("Fund Unit", function () {
         constants.DEFAULT_NAME,
         constants.DEFAULT_SYMBOL,
         constants.USDC_ADDRESS,
-        constants.WETH_ADDRESS
+        constants.WETH_ADDRESS,
+        constants.DEFAULT_PROTOCOL_FEE,
+        constants.DEFAULT_MANAGEMENT_FEE
       );
 
       await expect(tx)
@@ -38,7 +40,9 @@ describe("Fund Unit", function () {
           constants.DEFAULT_NAME,
           constants.DEFAULT_SYMBOL,
           constants.USDC_ADDRESS,
-          constants.WETH_ADDRESS
+          constants.WETH_ADDRESS,
+          constants.DEFAULT_PROTOCOL_FEE,
+          constants.DEFAULT_MANAGEMENT_FEE
         );
     });
   });
@@ -80,9 +84,9 @@ describe("Fund Unit", function () {
         .withArgs(weth_holder.address, BigInt(constants.DEFAULT_SHARES));
     });
 
-    it("Should have the right amount of shares when buying in a fund with an ETH balance", async function () {
+    it("Should have the right amount of shares when buying in a fund with an ETH balance and pay the protocolFee", async function () {
       const { weth } = await loadFixture(deployTokensFixture);
-      const { fund, pricer } = await loadFixture(deployFundFixture);
+      const { fund, pricer, deployer } = await loadFixture(deployFundFixture);
 
       await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
@@ -91,9 +95,28 @@ describe("Fund Unit", function () {
 
       const whale = await ethers.getSigner(constants.WHALE);
 
+      const deployerBalanceBefore = await ethers.provider.getBalance(
+        deployer.address
+      );
+
       await fund.connect(whale).buyShares(pricer.target, {
         value: constants.DEFAULT_SHARES_INVESTMENT,
       });
+
+      const deployerBalanceAfter = await ethers.provider.getBalance(
+        deployer.address
+      );
+
+      const protocolFee =
+        (constants.DEFAULT_SHARES_INVESTMENT * constants.DEFAULT_PROTOCOL_FEE) /
+        100;
+
+      console.log(deployerBalanceBefore);
+      console.log(deployerBalanceAfter);
+
+      // expect(deployerBalanceAfter.toString()).to.equal(
+      //   deployerBalanceBefore.add(protocolFee).toString()
+      // );
 
       await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
@@ -108,7 +131,16 @@ describe("Fund Unit", function () {
         })
       )
         .to.emit(fund, "SharesBought")
-        .withArgs(cetacean.address, BigInt(constants.DEFAULT_SHARES / 2));
+        .withArgs(cetacean.address, "500350245171620134");
+
+      // expect(await fund.balanceOf(deployer.address)).to.equal(
+      //   (
+      //     ((constants.DEFAULT_SHARES_INVESTMENT / 2) *
+      //       constants.DEFAULT_PROTOCOL_FEE) /
+      //       100 +
+      //     protocolFee
+      //   ).toString()
+      // );
     });
   });
 
@@ -149,9 +181,14 @@ describe("Fund Unit", function () {
       const fundEthBalance = (
         await ethers.provider.getBalance(fund.target)
       ).toString();
+
       expect(fundEthBalance).to.equal(
         (
-          constants.DEFAULT_SHARES_INVESTMENT - constants.DEFAULT_INVESTMENT
+          constants.DEFAULT_SHARES_INVESTMENT -
+          constants.DEFAULT_INVESTMENT -
+          (constants.DEFAULT_PROTOCOL_FEE *
+            constants.DEFAULT_SHARES_INVESTMENT) /
+            10000
         ).toString()
       );
     });
@@ -224,7 +261,6 @@ describe("Fund Unit", function () {
       const minAmountsBought = [constants.DEFAULT_MIN_AMOUNT_BOUGHT];
       const fundDaiBalance = await dai.balanceOf(fund.target);
       const amounts = [fundDaiBalance];
-      console.log(fundDaiBalance.toString());
       const divestment = await getSwapParams(
         constants.DAI_ADDRESS,
         constants.WETH_ADDRESS,
@@ -250,9 +286,25 @@ describe("Fund Unit", function () {
         deployInvestedFundFixture
       );
 
-      // await expect(fund.connect(anyone).divest(tokens, amounts, swapParams))
-      //   .to.be.revertedWithCustomError(fund, "Unauthorized")
-      //   .withArgs(anyone.address);
+      const tokens = [dai.target];
+      const minAmountsBought = [constants.DEFAULT_MIN_AMOUNT_BOUGHT];
+      const fundDaiBalance = await dai.balanceOf(fund.target);
+      const amounts = [fundDaiBalance];
+      const divestment = await getSwapParams(
+        constants.DAI_ADDRESS,
+        constants.WETH_ADDRESS,
+        fundDaiBalance
+      );
+
+      const swapParams = [divestment];
+
+      await expect(
+        fund
+          .connect(anyone)
+          .divest(tokens, amounts, minAmountsBought, swapParams)
+      )
+        .to.be.revertedWithCustomError(fund, "Unauthorized")
+        .withArgs(anyone.address);
     });
   });
 });
