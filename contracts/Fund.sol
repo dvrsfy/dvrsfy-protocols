@@ -103,6 +103,8 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         uint256 _userBalance = balanceOf(msg.sender);
         if (balanceOf(msg.sender) < _shares)
             revert InsufficientBalance(_shares, _userBalance);
+        if (_swapParams.length != assets.length)
+            revert InvalidSellInstructions(_swapParams, assets);
         for (uint256 i = 0; i < assets.length; i++) {
             uint256 _userFundShare = _shares / _totalSupply;
             uint256 _userShares = (_shares * address(this).balance) /
@@ -120,6 +122,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
                     _swapParams[i].sellAmount,
                     IERC20(assets[i]).balanceOf(address(this))
                 );
+            _approveAndDivest(_swapParams[i], 0);
         }
 
         _burn(msg.sender, _shares);

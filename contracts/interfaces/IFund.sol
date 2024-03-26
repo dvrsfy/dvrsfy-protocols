@@ -11,6 +11,10 @@ interface IDvrsfyFund {
     error InsufficientBalance(uint256, uint256);
     error InvalidDivestementToken(address);
     error InvalidInvestedToken(address);
+    error InvalidSellInstructions(
+        IDvrsfySwapper.SwapParams[] _swapParams,
+        address[] assets
+    );
     error InvalidTargetToken(address);
     error InvestmentInsufficient();
     error MinimumAmountNotMet(uint256, uint256);

@@ -162,7 +162,7 @@ describe("Fund Unit", function () {
         constants.WETH_ADDRESS,
         whaleDaiShares
       );
-
+      const fundDaiBalanceBefore = await dai.balanceOf(fund.target);
       const swapParams = [sellSharesParams];
 
       await expect(
@@ -176,6 +176,10 @@ describe("Fund Unit", function () {
         .to.emit(fund, "SharesSold")
         .withArgs(whale.address, constants.DEFAULT_SHARES_INVESTMENT);
       expect(await fund.balanceOf(whale.address)).to.equal(0);
+      const fundDaiBalanceAfter = await dai.balanceOf(fund.target);
+      console.log(fundDaiBalanceBefore.toString());
+      console.log(fundDaiBalanceAfter.toString());
+      expect(fundDaiBalanceAfter).to.be.lessThan(fundDaiBalanceBefore);
     });
 
     it("should allow to sell shares only for ETH", async function () {
@@ -235,6 +239,7 @@ describe("Fund Unit", function () {
           )
       )
         .to.be.revertedWithCustomError(fund, "InvalidInvestedToken")
+        // swapParams[0].sellToken (need to fix casing when putting variable)
         .withArgs("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
     });
   });
