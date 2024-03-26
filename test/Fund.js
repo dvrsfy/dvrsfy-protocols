@@ -128,6 +128,7 @@ describe("Fund Unit", function () {
         })
       )
         .to.emit(fund, "SharesBought")
+        // Need to verify the math. It's 30% of the first investment minus the fees
         .withArgs(cetacean.address, "500350245171620134");
 
       // expect(await fund.balanceOf(deployer.address)).to.equal(
@@ -138,6 +139,103 @@ describe("Fund Unit", function () {
       //     protocolFee
       //   ).toString()
       // );
+    });
+
+    it("should allow to sell shares", async function () {
+      const { weth, dai } = await loadFixture(deployTokensFixture);
+      const { fund, pricer } = await loadFixture(deployInvestedFundFixture);
+
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.WHALE],
+      });
+
+      const whale = await ethers.getSigner(constants.WHALE);
+
+      const whaleDaiShares =
+        ((await fund.balanceOf(whale.address)) *
+          (await dai.balanceOf(fund.target))) /
+        (await fund.totalSupply());
+
+      const sellSharesParams = await getSwapParams(
+        constants.DAI_ADDRESS,
+        constants.WETH_ADDRESS,
+        whaleDaiShares
+      );
+
+      const swapParams = [sellSharesParams];
+
+      await expect(
+        fund
+          .connect(whale)
+          .sellShares(
+            constants.DEFAULT_SHARES_INVESTMENT.toString(),
+            swapParams
+          )
+      )
+        .to.emit(fund, "SharesSold")
+        .withArgs(whale.address, constants.DEFAULT_SHARES_INVESTMENT);
+      expect(await fund.balanceOf(whale.address)).to.equal(0);
+    });
+
+    it("should allow to sell shares only for ETH", async function () {
+      const { weth } = await loadFixture(deployTokensFixture);
+      const { fund, pricer } = await loadFixture(deployInvestedFundFixture);
+
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.WHALE],
+      });
+
+      const whale = await ethers.getSigner(constants.WHALE);
+
+      const swapParams = [constants.DEFAULT_SWAP_PARAMS];
+
+      await expect(
+        fund
+          .connect(whale)
+          .sellShares(
+            constants.DEFAULT_SHARES_INVESTMENT.toString(),
+            swapParams
+          )
+      )
+        .to.be.revertedWithCustomError(fund, "InvalidTargetToken")
+        .withArgs(swapParams[0].buyToken);
+    });
+
+    it("should allow to sell only tokens that are part of the fund", async function () {
+      const { weth, dai } = await loadFixture(deployTokensFixture);
+      const { fund, pricer } = await loadFixture(deployInvestedFundFixture);
+
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.WHALE],
+      });
+
+      const whale = await ethers.getSigner(constants.WHALE);
+      const whaleDaiShares =
+        ((await fund.balanceOf(whale.address)) *
+          (await dai.balanceOf(fund.target))) /
+        (await fund.totalSupply());
+
+      const sellSharesParams = await getSwapParams(
+        constants.USDC_ADDRESS,
+        constants.WETH_ADDRESS,
+        whaleDaiShares
+      );
+
+      const swapParams = [sellSharesParams];
+
+      await expect(
+        fund
+          .connect(whale)
+          .sellShares(
+            constants.DEFAULT_SHARES_INVESTMENT.toString(),
+            swapParams
+          )
+      )
+        .to.be.revertedWithCustomError(fund, "InvalidInvestedToken")
+        .withArgs("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
     });
   });
 

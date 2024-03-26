@@ -123,7 +123,7 @@ async function deployInvestedFundFixture() {
   const whale = await ethers.getSigner(constants.WHALE);
 
   await fund.connect(whale).buyShares(pricer.target, {
-    value: constants.DEFAULT_INVESTMENT.toString(),
+    value: constants.DEFAULT_SHARES_INVESTMENT,
   });
 
   const swapParams = [investment];

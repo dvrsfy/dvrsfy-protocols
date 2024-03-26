@@ -95,7 +95,36 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         emit SharesBought(msg.sender, _shares);
     }
 
-    function sellShares() external {}
+    function sellShares(
+        uint256 _shares,
+        IDvrsfySwapper.SwapParams[] calldata _swapParams
+    ) external {
+        uint256 _totalSupply = totalSupply();
+        uint256 _userBalance = balanceOf(msg.sender);
+        if (balanceOf(msg.sender) < _shares)
+            revert InsufficientBalance(_shares, _userBalance);
+        for (uint256 i = 0; i < assets.length; i++) {
+            uint256 _userFundShare = _shares / _totalSupply;
+            uint256 _userShares = (_shares * address(this).balance) /
+                _totalSupply;
+            if (address(_swapParams[i].buyToken) != address(weth))
+                revert InvalidTargetToken(address(_swapParams[i].buyToken));
+            if (address(_swapParams[i].sellToken) != assets[i])
+                revert InvalidInvestedToken(address(_swapParams[i].sellToken));
+            if (
+                _swapParams[i].sellAmount >
+                (IERC20(assets[i]).balanceOf(address(this)) * _shares) /
+                    totalSupply()
+            )
+                revert InsufficientBalance(
+                    _swapParams[i].sellAmount,
+                    IERC20(assets[i]).balanceOf(address(this))
+                );
+        }
+
+        _burn(msg.sender, _shares);
+        emit SharesSold(msg.sender, _shares);
+    }
 
     function invest(
         address[] calldata _tokens,
@@ -111,6 +140,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
                 revert InsufficientBalance(_totalInvestment, _fundAmount);
             }
             _approveAndInvest(_swapParams[i], _minAmountsBought[i]);
+            assets.push(address(_swapParams[i].buyToken));
         }
 
         emit Investment(_tokens, _amounts);

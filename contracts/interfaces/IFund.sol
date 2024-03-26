@@ -10,6 +10,8 @@ interface IDvrsfyFund {
     error IncorrectAllocation(uint256, uint256);
     error InsufficientBalance(uint256, uint256);
     error InvalidDivestementToken(address);
+    error InvalidInvestedToken(address);
+    error InvalidTargetToken(address);
     error InvestmentInsufficient();
     error MinimumAmountNotMet(uint256, uint256);
     error NewInvestmentsClosed();
@@ -21,10 +23,14 @@ interface IDvrsfyFund {
     event FundClosed();
     event Investment(address[] _tokens, uint256[] _amounts);
     event SharesBought(address indexed investor, uint256 shares);
+    event SharesSold(address indexed investor, uint256 shares);
 
     function buyShares(IDvrsfyPricer _pricer) external payable;
 
-    function sellShares() external;
+    function sellShares(
+        uint256 _shares,
+        IDvrsfySwapper.SwapParams[] calldata _swapParams
+    ) external;
 
     function invest(
         address[] calldata _tokens,
