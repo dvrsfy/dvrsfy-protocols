@@ -145,6 +145,10 @@ describe("Fund Unit", function () {
       const { weth, dai } = await loadFixture(deployTokensFixture);
       const { fund, pricer } = await loadFixture(deployInvestedFundFixture);
 
+      // Tests that the asset array added properly the asset after investing
+      const assetsBefore = await fund.getAssets();
+      expect(assetsBefore).to.deep.equal([dai.target]);
+
       await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
         params: [constants.WHALE],
@@ -175,11 +179,17 @@ describe("Fund Unit", function () {
       )
         .to.emit(fund, "SharesSold")
         .withArgs(whale.address, constants.DEFAULT_SHARES_INVESTMENT);
+
+      // Tests that the shares of the investor were correctly burnt after selling
       expect(await fund.balanceOf(whale.address)).to.equal(0);
+
+      // Tests that the proportional balance of the asset was correctly sold
       const fundDaiBalanceAfter = await dai.balanceOf(fund.target);
-      console.log(fundDaiBalanceBefore.toString());
-      console.log(fundDaiBalanceAfter.toString());
       expect(fundDaiBalanceAfter).to.be.lessThan(fundDaiBalanceBefore);
+
+      // Tests that the asset array updated correctly after selling the whole balance
+      const assetsAfter = await fund.getAssets();
+      expect(assetsAfter).to.deep.equal([]);
     });
 
     it("should allow to sell shares only for ETH", async function () {

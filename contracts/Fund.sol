@@ -95,6 +95,10 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         emit SharesBought(msg.sender, _shares);
     }
 
+    // TODO: Update the assets array as shares are sold
+    // TODO: Track how much money if collected from the sale of shares and transfer back to the user
+    // TODO: Pay the management fee
+
     function sellShares(
         uint256 _shares,
         IDvrsfySwapper.SwapParams[] calldata _swapParams
@@ -122,7 +126,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
                     _swapParams[i].sellAmount,
                     IERC20(assets[i]).balanceOf(address(this))
                 );
-            _approveAndDivest(_swapParams[i], 0);
+            _approveAndDivest(_swapParams[i], 0, i);
         }
 
         _burn(msg.sender, _shares);
@@ -169,7 +173,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
                     _swapParams[i].sellAmount
                 );
             }
-            _approveAndDivest(_swapParams[i], 0);
+            _approveAndDivest(_swapParams[i], 0, i);
         }
         emit Divestment(_tokens, _amounts);
     }
@@ -186,11 +190,16 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
 
     function _approveAndDivest(
         IDvrsfySwapper.SwapParams calldata params,
-        uint256 _minAmountBought
+        uint256 _minAmountBought,
+        uint256 _assetIndex
     ) public payable returns (uint256 _amountBought) {
         params.sellToken.approve(address(swapper), params.sellAmount);
         // Need to always have enough ETH to pay for the fee
         // Need to adjust the fee to be paid from the contract
+        if (params.sellAmount == params.sellToken.balanceOf(address(this))) {
+            assets[_assetIndex] = assets[assets.length - 1];
+            assets.pop();
+        }
         _amountBought = IDvrsfySwapper(swapper).swap{value: msg.value}(params);
         if (_amountBought < _minAmountBought)
             revert MinimumAmountNotMet(_minAmountBought, _amountBought);
@@ -210,6 +219,10 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         );
         if (_amountBought < _minAmountBought)
             revert MinimumAmountNotMet(_minAmountBought, _amountBought);
+    }
+
+    function getAssets() external view returns (address[] memory) {
+        return assets;
     }
 
     fallback() external payable {}
