@@ -7,6 +7,8 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 interface IDvrsfyPricer {
     error InvalidFactory();
 
+    event FactoryUpdated(address _uniswapV3Factory);
+
     function getPrices(
         address _baseToken,
         address[] calldata _assets,

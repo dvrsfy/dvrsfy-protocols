@@ -69,5 +69,6 @@ contract DvrsfyPricer is IDvrsfyPricer {
     function updateFactory(IUniswapV3Factory _uniswapV3Factory) external {
         if (address(_uniswapV3Factory) == address(0)) revert InvalidFactory();
         uniswapV3Factory = _uniswapV3Factory;
+        emit FactoryUpdated(address(_uniswapV3Factory));
     }
 }

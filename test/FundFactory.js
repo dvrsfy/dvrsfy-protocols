@@ -20,6 +20,22 @@ describe("FundFactory Unit", function () {
       const { fundFactory } = await loadFixture(deployFundFactoryFixture);
       expect(fundFactory.address).to.not.equal(constants.ADDRESS_ZERO);
     });
+
+    it("Shouldn't deploy with no pricer", async function () {
+      const { pricer, swapper } = await loadFixture(deployFundFactoryFixture);
+      const FundFactory = await ethers.getContractFactory("DvrsfyFundFactory");
+      await expect(
+        FundFactory.deploy(constants.ADDRESS_ZERO, swapper.target)
+      ).to.be.revertedWithCustomError(FundFactory, "PricerNotSet");
+    });
+
+    it("Shouldn't deploy with no swapper", async function () {
+      const { pricer, swapper } = await loadFixture(deployFundFactoryFixture);
+      const FundFactory = await ethers.getContractFactory("DvrsfyFundFactory");
+      await expect(
+        FundFactory.deploy(pricer.target, constants.ADDRESS_ZERO)
+      ).to.be.revertedWithCustomError(FundFactory, "SwapperNotSet");
+    });
   });
 
   describe("Create Fund", function () {
