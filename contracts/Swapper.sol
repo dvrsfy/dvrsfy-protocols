@@ -52,7 +52,7 @@ contract DvrsfySwapper is IDvrsfySwapper {
         if (address(params.sellToken) == address(WETH)) {
             WETH.deposit{value: params.sellAmount}();
             protocolFee = msg.value - params.sellAmount;
-            ethPayment = true;
+            // ethPayment = true;
         } else {
             params.sellToken.safeTransferFrom(
                 msg.sender,
@@ -77,17 +77,21 @@ contract DvrsfySwapper is IDvrsfySwapper {
 
         // Use our current buyToken balance to determine how much we've bought.
         boughtAmount = params.buyToken.balanceOf(address(this));
-        // Transfer the amount bought
-        params.buyToken.safeTransfer(msg.sender, boughtAmount);
         // Unwrap leftover WETH if crypto provided was ETH
-        if (ethPayment) {
-            WETH.withdraw(WETH.balanceOf(address(this)));
+        // if (ethPayment || address(params.buyToken) == address(WETH)) {
+        WETH.withdraw(WETH.balanceOf(address(this)));
+        // }
+        // Transfer the amount bought
+        if (params.buyToken.balanceOf(address(this)) > 0) {
+            params.buyToken.safeTransfer(msg.sender, boughtAmount);
         }
         // Refund unswapped token back
-        params.sellToken.safeTransfer(
-            msg.sender,
-            params.sellToken.balanceOf(address(this))
-        );
+        if (params.sellToken.balanceOf(address(this)) > 0) {
+            params.sellToken.safeTransfer(
+                msg.sender,
+                params.sellToken.balanceOf(address(this))
+            );
+        }
         // Refund any unspent protocol fees to the sender.
         msg.sender.call{value: address(this).balance}("");
         // Reset the approval

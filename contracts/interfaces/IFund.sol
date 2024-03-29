@@ -34,7 +34,7 @@ interface IDvrsfyFund {
     function sellShares(
         uint256 _shares,
         IDvrsfySwapper.SwapParams[] calldata _swapParams
-    ) external;
+    ) external payable;
 
     function invest(
         address[] calldata _tokens,

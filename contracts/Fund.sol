@@ -102,17 +102,15 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     function sellShares(
         uint256 _shares,
         IDvrsfySwapper.SwapParams[] calldata _swapParams
-    ) external {
+    ) external payable {
         uint256 _totalSupply = totalSupply();
         uint256 _userBalance = balanceOf(msg.sender);
         if (balanceOf(msg.sender) < _shares)
             revert InsufficientBalance(_shares, _userBalance);
         if (_swapParams.length != assets.length)
             revert InvalidSellInstructions(_swapParams, assets);
+        uint256 _userShares = (_shares * address(this).balance) / _totalSupply;
         for (uint256 i = 0; i < assets.length; i++) {
-            uint256 _userFundShare = _shares / _totalSupply;
-            uint256 _userShares = (_shares * address(this).balance) /
-                _totalSupply;
             if (address(_swapParams[i].buyToken) != address(weth))
                 revert InvalidTargetToken(address(_swapParams[i].buyToken));
             if (address(_swapParams[i].sellToken) != assets[i])
@@ -126,9 +124,11 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
                     _swapParams[i].sellAmount,
                     IERC20(assets[i]).balanceOf(address(this))
                 );
-            _approveAndDivest(_swapParams[i], 0, i);
+            _userShares += _approveAndDivest(_swapParams[i], 0, i);
         }
-
+        uint256 _managementFee = (_userShares * managementFee) / DIVISOR;
+        fundManager.call{value: _managementFee}("");
+        msg.sender.call{value: _userShares - _managementFee}("");
         _burn(msg.sender, _shares);
         emit SharesSold(msg.sender, _shares);
     }

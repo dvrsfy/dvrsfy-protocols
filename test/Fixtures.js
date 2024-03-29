@@ -112,7 +112,7 @@ async function deployInvestedFundFixture() {
   const investment = await getSwapParams(
     constants.WETH_ADDRESS,
     constants.DAI_ADDRESS,
-    constants.DEFAULT_INVESTMENT / 100
+    constants.DEFAULT_INVESTMENT
   );
 
   await hre.network.provider.request({

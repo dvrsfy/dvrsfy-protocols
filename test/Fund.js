@@ -143,7 +143,9 @@ describe("Fund Unit", function () {
 
     it("should allow to sell shares", async function () {
       const { weth, dai } = await loadFixture(deployTokensFixture);
-      const { fund, pricer } = await loadFixture(deployInvestedFundFixture);
+      const { fund, pricer, deployer } = await loadFixture(
+        deployInvestedFundFixture
+      );
 
       // Tests that the asset array added properly the asset after investing
       const assetsBefore = await fund.getAssets();
@@ -169,6 +171,11 @@ describe("Fund Unit", function () {
       const fundDaiBalanceBefore = await dai.balanceOf(fund.target);
       const swapParams = [sellSharesParams];
 
+      const whaleEthBalanceBefore = await ethers.provider.getBalance(whale);
+      const fundManagerEthBalanceBefore = await ethers.provider.getBalance(
+        deployer
+      );
+
       await expect(
         fund
           .connect(whale)
@@ -190,6 +197,20 @@ describe("Fund Unit", function () {
       // Tests that the asset array updated correctly after selling the whole balance
       const assetsAfter = await fund.getAssets();
       expect(assetsAfter).to.deep.equal([]);
+
+      // Tests that the eth is properly sent to the investor selling the shares
+      const whaleEthBalanceAfter = await ethers.provider.getBalance(
+        constants.WHALE
+      );
+      expect(whaleEthBalanceBefore).to.be.lessThan(whaleEthBalanceAfter);
+
+      // Test that the fundManager got the fee
+      const fundManagerEthBalanceAfter = await ethers.provider.getBalance(
+        deployer
+      );
+      expect(fundManagerEthBalanceBefore).to.be.lessThan(
+        fundManagerEthBalanceAfter
+      );
     });
 
     it("should allow to sell shares only for ETH", async function () {
