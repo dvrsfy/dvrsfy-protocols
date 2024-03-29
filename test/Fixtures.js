@@ -181,6 +181,7 @@ async function getSwapParams(sellToken, buyToken, sellAmount) {
 
 module.exports = {
   getSigners,
+  deployUniswapFactoryV3Fixture,
   deployTokensFixture,
   deploySwapperFixture,
   deployPricerFixture,

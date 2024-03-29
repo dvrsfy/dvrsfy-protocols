@@ -74,7 +74,6 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
             _shares = _investment;
         } else {
             for (uint256 i = 0; i < assets.length; i++) {
-                // Need to normalize the price to the same decimals as the asset
                 _fundValue +=
                     (IERC20(assets[i]).balanceOf(address(this)) *
                         prices[i] *
