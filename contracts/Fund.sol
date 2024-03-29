@@ -76,8 +76,10 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
             for (uint256 i = 0; i < assets.length; i++) {
                 // Need to normalize the price to the same decimals as the asset
                 _fundValue +=
-                    IERC20(assets[i]).balanceOf(address(this)) *
-                    prices[i];
+                    (IERC20(assets[i]).balanceOf(address(this)) *
+                        prices[i] *
+                        IERC20Decimals(address(this)).decimals()) /
+                    IERC20Decimals(assets[i]).decimals();
             }
             _fundValue += ethPrice * (address(this).balance - _investment);
             _shares = (_investment * ethPrice * _totalSupply) / _fundValue;
@@ -95,17 +97,13 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         emit SharesBought(msg.sender, _shares);
     }
 
-    // TODO: Update the assets array as shares are sold
-    // TODO: Track how much money if collected from the sale of shares and transfer back to the user
-    // TODO: Pay the management fee
-
     function sellShares(
         uint256 _shares,
         IDvrsfySwapper.SwapParams[] calldata _swapParams
     ) external payable {
         uint256 _totalSupply = totalSupply();
         uint256 _userBalance = balanceOf(msg.sender);
-        if (balanceOf(msg.sender) < _shares)
+        if (_userBalance < _shares)
             revert InsufficientBalance(_shares, _userBalance);
         if (_swapParams.length != assets.length)
             revert InvalidSellInstructions(_swapParams, assets);
