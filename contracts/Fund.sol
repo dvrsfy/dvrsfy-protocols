@@ -16,14 +16,16 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     uint256[] public allocations;
     uint24[] public pricingFees;
     IUniswapV3Pool[] public pricingPools;
-    bool public variableAllocation;
     bool public openForInvestments;
+    uint256 public constant DIVISOR = 10000;
     uint256 public maxAssets = 10;
+    uint256 public protocolFee;
+    uint256 public managementFee;
     address public pricer;
-    address public swapper;
+    address payable public swapper;
     address public baseToken;
-    uint256 constant FUND_DECIMALS = 18;
-    mapping(address => bool) public investmentTokens;
+    address public fundManager;
+    address public weth;
 
     constructor(
         address _owner,
@@ -31,33 +33,27 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         address _swapper,
         string memory _name,
         string memory _symbol,
-        address[] memory _assets,
-        uint256[] memory _allocations,
-        uint24[] memory _pricingFees,
         address _baseToken,
-        bool _variableAllocation
+        address _weth,
+        uint256 _protocolFee,
+        uint256 _managementFee
     ) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(_owner) {
-        uint256 assetsLength = _assets.length;
-        if (assetsLength > maxAssets) revert TooManyAssets(assetsLength);
-        if (assetsLength == 0) revert InsuffucientAssets();
-        if (_allocations.length != assetsLength)
-            revert IncorrectParameters(_assets, _allocations);
-        assets = _assets;
-        for (uint256 i = 0; i < assetsLength; ) {
-            investmentTokens[_assets[i]] = true;
-            unchecked {
-                i++;
-            }
-        }
-        allocations = _allocations;
+        fundManager = _owner;
+        swapper = payable(_swapper);
         baseToken = _baseToken;
-        pricingFees = _pricingFees;
-        variableAllocation = _variableAllocation;
+        weth = _weth;
         openForInvestments = true;
+        protocolFee = _protocolFee;
+        managementFee = _managementFee;
     }
 
     modifier fundIsOpen() {
         if (!openForInvestments) revert NewInvestmentsClosed();
+        _;
+    }
+
+    modifier fundManagerOnly() {
+        if (msg.sender != fundManager) revert Unauthorized(msg.sender);
         _;
     }
 
@@ -80,8 +76,10 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
             for (uint256 i = 0; i < assets.length; i++) {
                 // Need to normalize the price to the same decimals as the asset
                 _fundValue +=
-                    IERC20(assets[i]).balanceOf(address(this)) *
-                    prices[i];
+                    (IERC20(assets[i]).balanceOf(address(this)) *
+                        prices[i] *
+                        IERC20Decimals(address(this)).decimals()) /
+                    IERC20Decimals(assets[i]).decimals();
             }
             _fundValue += ethPrice * (address(this).balance - _investment);
             _shares = (_investment * ethPrice * _totalSupply) / _fundValue;
@@ -91,22 +89,91 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
 
     function buyShares(IDvrsfyPricer _pricer) public payable fundIsOpen {
         if (msg.value == 0) revert InvestmentInsufficient();
-        uint256 _investment = msg.value;
-        uint256 _shares = calculateShares(_pricer, _investment);
-        // Swap funds for assets
-        // IDvrsfySwapper.swap(assets, _shares);
+        uint256 _shares = calculateShares(_pricer, msg.value);
+        uint256 _protocolFee = (msg.value * protocolFee) / DIVISOR;
+        payable(owner()).transfer(_protocolFee);
+        payable(address(this)).transfer(msg.value - _protocolFee);
         _mint(msg.sender, _shares);
-        emit Investment(msg.sender, _shares);
+        emit SharesBought(msg.sender, _shares);
     }
 
-    function sellShares() external {}
+    function sellShares(
+        uint256 _shares,
+        IDvrsfySwapper.SwapParams[] calldata _swapParams
+    ) external payable {
+        uint256 _totalSupply = totalSupply();
+        uint256 _userBalance = balanceOf(msg.sender);
+        if (_userBalance < _shares)
+            revert InsufficientBalance(_shares, _userBalance);
+        if (_swapParams.length != assets.length)
+            revert InvalidSellInstructions(_swapParams, assets);
+        uint256 _userShares = (_shares * address(this).balance) / _totalSupply;
+        for (uint256 i = 0; i < assets.length; i++) {
+            if (address(_swapParams[i].buyToken) != address(weth))
+                revert InvalidTargetToken(address(_swapParams[i].buyToken));
+            if (address(_swapParams[i].sellToken) != assets[i])
+                revert InvalidInvestedToken(address(_swapParams[i].sellToken));
+            if (
+                _swapParams[i].sellAmount >
+                (IERC20(assets[i]).balanceOf(address(this)) * _shares) /
+                    totalSupply()
+            )
+                revert InsufficientBalance(
+                    _swapParams[i].sellAmount,
+                    IERC20(assets[i]).balanceOf(address(this))
+                );
+            _userShares += _approveAndDivest(_swapParams[i], 0, i);
+        }
+        uint256 _managementFee = (_userShares * managementFee) / DIVISOR;
+        fundManager.call{value: _managementFee}("");
+        msg.sender.call{value: _userShares - _managementFee}("");
+        _burn(msg.sender, _shares);
+        emit SharesSold(msg.sender, _shares);
+    }
 
-    function divest() external {}
+    function invest(
+        address[] calldata _tokens,
+        uint256[] calldata _amounts,
+        uint256[] calldata _minAmountsBought,
+        IDvrsfySwapper.SwapParams[] calldata _swapParams
+    ) external fundManagerOnly {
+        uint256 _fundAmount = address(this).balance;
+        uint256 _totalInvestment = 0;
+        for (uint256 i = 0; i < _swapParams.length; i++) {
+            _totalInvestment += _swapParams[i].sellAmount;
+            if (_totalInvestment >= _fundAmount) {
+                revert InsufficientBalance(_totalInvestment, _fundAmount);
+            }
+            _approveAndInvest(_swapParams[i], _minAmountsBought[i]);
+            assets.push(address(_swapParams[i].buyToken));
+        }
 
-    function rebalance() external {}
+        emit Investment(_tokens, _amounts);
+    }
 
-    function freezeAllocation() public onlyOwner {
-        variableAllocation = true;
+    function divest(
+        address[] calldata _tokens,
+        uint256[] calldata _amounts,
+        uint256[] calldata _minAmountsBought,
+        IDvrsfySwapper.SwapParams[] calldata _swapParams
+    ) external fundManagerOnly {
+        for (uint256 i = 0; i < _swapParams.length; i++) {
+            if (_swapParams[i].buyToken != IERC20(weth))
+                revert InvalidDivestementToken(
+                    address(_swapParams[i].buyToken)
+                );
+            uint256 _fundAmount = _swapParams[i].sellToken.balanceOf(
+                address(this)
+            );
+            if (_fundAmount < _swapParams[i].sellAmount) {
+                revert InsufficientBalance(
+                    _fundAmount,
+                    _swapParams[i].sellAmount
+                );
+            }
+            _approveAndDivest(_swapParams[i], 0, i);
+        }
+        emit Divestment(_tokens, _amounts);
     }
 
     function closeFund() external onlyOwner {
@@ -117,6 +184,43 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     function openFund() external onlyOwner {
         openForInvestments = true;
         emit FundOpened();
+    }
+
+    function _approveAndDivest(
+        IDvrsfySwapper.SwapParams calldata params,
+        uint256 _minAmountBought,
+        uint256 _assetIndex
+    ) public payable returns (uint256 _amountBought) {
+        params.sellToken.approve(address(swapper), params.sellAmount);
+        // Need to always have enough ETH to pay for the fee
+        // Need to adjust the fee to be paid from the contract
+        if (params.sellAmount == params.sellToken.balanceOf(address(this))) {
+            assets[_assetIndex] = assets[assets.length - 1];
+            assets.pop();
+        }
+        _amountBought = IDvrsfySwapper(swapper).swap{value: msg.value}(params);
+        if (_amountBought < _minAmountBought)
+            revert MinimumAmountNotMet(_minAmountBought, _amountBought);
+    }
+
+    function _approveAndInvest(
+        IDvrsfySwapper.SwapParams calldata params,
+        uint256 _minAmountBought
+    ) public payable returns (uint256 _amountBought) {
+        require(
+            address(this).balance >= params.sellAmount,
+            "Insufficient balance"
+        );
+        params.sellToken.approve(address(swapper), params.sellAmount);
+        _amountBought = IDvrsfySwapper(swapper).swap{value: params.sellAmount}(
+            params
+        );
+        if (_amountBought < _minAmountBought)
+            revert MinimumAmountNotMet(_minAmountBought, _amountBought);
+    }
+
+    function getAssets() external view returns (address[] memory) {
+        return assets;
     }
 
     fallback() external payable {}

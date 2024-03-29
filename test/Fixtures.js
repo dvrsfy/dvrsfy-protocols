@@ -17,8 +17,8 @@ let user2;
 let user3;
 
 async function getSigners() {
-  [deployer, user1, user2, user3] = await ethers.getSigners();
-  return { deployer, user1, user2, user3 };
+  [deployer, anyone] = await ethers.getSigners();
+  return { deployer, anyone };
 }
 
 async function deployTokensFixture() {
@@ -66,7 +66,7 @@ async function deployFundFactoryFixture() {
 }
 
 async function deployFundFixture() {
-  await getSigners();
+  const { deployer } = await getSigners();
   await deployTokensFixture();
   await deployPricerFixture();
   await deploySwapperFixture();
@@ -78,14 +78,60 @@ async function deployFundFixture() {
     swapper.target,
     constants.DEFAULT_NAME,
     constants.DEFAULT_SYMBOL,
-    [weth.target, pepe.target],
-    [50, 50],
-    constants.PRICING_FEES,
     constants.USDC_ADDRESS,
-    false
+    constants.WETH_ADDRESS,
+    constants.DEFAULT_PROTOCOL_FEE,
+    constants.DEFAULT_MANAGEMENT_FEE
   );
 
-  return { fund, pricer, swapper, weth, usdc, pepe };
+  return { fund, pricer, swapper, weth, usdc, pepe, deployer };
+}
+
+async function deployInvestedFundFixture() {
+  const { deployer } = await getSigners();
+  await deployTokensFixture();
+  await deployPricerFixture();
+  await deploySwapperFixture();
+
+  const Fund = await ethers.getContractFactory("DvrsfyFund");
+  const fund = await Fund.deploy(
+    deployer.address,
+    pricer.target,
+    swapper.target,
+    constants.DEFAULT_NAME,
+    constants.DEFAULT_SYMBOL,
+    constants.USDC_ADDRESS,
+    constants.WETH_ADDRESS,
+    constants.DEFAULT_PROTOCOL_FEE,
+    constants.DEFAULT_MANAGEMENT_FEE
+  );
+
+  const tokens = [dai.target];
+  const minAmountsBought = [constants.DEFAULT_MIN_AMOUNT_BOUGHT];
+  const amounts = [constants.DEFAULT_INVESTMENT];
+  const investment = await getSwapParams(
+    constants.WETH_ADDRESS,
+    constants.DAI_ADDRESS,
+    constants.DEFAULT_INVESTMENT
+  );
+
+  await hre.network.provider.request({
+    method: "hardhat_impersonateAccount",
+    params: [constants.WHALE],
+  });
+
+  const whale = await ethers.getSigner(constants.WHALE);
+
+  await fund.connect(whale).buyShares(pricer.target, {
+    value: constants.DEFAULT_SHARES_INVESTMENT,
+  });
+
+  const swapParams = [investment];
+  await fund
+    .connect(deployer)
+    .invest(tokens, amounts, minAmountsBought, swapParams);
+
+  return { fund, pricer, swapper, weth, usdc, pepe, deployer };
 }
 
 function createQueryString(params) {
@@ -113,6 +159,26 @@ function encodePriceSqrt(reserve1, reserve0) {
   );
 }
 
+async function getSwapParams(sellToken, buyToken, sellAmount) {
+  const qs = createQueryString({
+    sellToken: sellToken,
+    buyToken: buyToken,
+    sellAmount: sellAmount,
+  });
+
+  const quote = await getQuote(qs);
+  const swapParams = {
+    sellToken: quote.sellTokenAddress,
+    sellAmount: quote.sellAmount,
+    buyToken: quote.buyTokenAddress,
+    spender: quote.allowanceTarget,
+    swapTarget: quote.to,
+    swapCallData: quote.data,
+  };
+
+  return swapParams;
+}
+
 module.exports = {
   getSigners,
   deployTokensFixture,
@@ -120,7 +186,6 @@ module.exports = {
   deployPricerFixture,
   deployFundFactoryFixture,
   deployFundFixture,
-  createQueryString,
-  getQuote,
-  encodePriceSqrt,
+  deployInvestedFundFixture,
+  getSwapParams,
 };
