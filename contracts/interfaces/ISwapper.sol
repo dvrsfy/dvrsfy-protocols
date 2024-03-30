@@ -25,6 +25,8 @@ interface IDvrsfySwapper {
         address spender;
         // The `to` field from the API response.
         address payable swapTarget;
+        // The '
+        uint256 protocolFee;
         // The `data` field from the API response.
         bytes swapCallData;
     }

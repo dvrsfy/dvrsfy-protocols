@@ -32,6 +32,7 @@ const DEFAULT_SWAP_PARAMS = {
   buyToken: ADDRESS_ZERO,
   spender: ADDRESS_ZERO,
   swapTarget: ADDRESS_ZERO,
+  protocolFee: 0,
   swapCallData: ADDRESS_ZERO,
 };
 

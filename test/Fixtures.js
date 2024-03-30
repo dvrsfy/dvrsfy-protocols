@@ -173,6 +173,7 @@ async function getSwapParams(sellToken, buyToken, sellAmount) {
     buyToken: quote.buyTokenAddress,
     spender: quote.allowanceTarget,
     swapTarget: quote.to,
+    protocolFee: quote.protocolFee,
     swapCallData: quote.data,
   };
 
