@@ -53,6 +53,25 @@ contract DvrsfyPricer is IDvrsfyPricer {
         ethPrice = (numerator1 * numerator2) / (1 << 192);
     }
 
+    function validatePricingPools(
+        address _baseToken,
+        address[] calldata _assets,
+        uint24[] calldata _fees
+    ) external view returns (bool _areValid) {
+        _areValid = true;
+        for (uint256 i = 0; i < _assets.length; i++) {
+            address _pool = uniswapV3Factory.getPool(
+                _baseToken,
+                _assets[i],
+                _fees[i]
+            );
+            if (_pool == address(0)) {
+                _areValid = false;
+                break;
+            }
+        }
+    }
+
     // function getInvertedPrices(
     //     IUniswapV3Pool[] calldata _pools
     // ) external view returns (uint256[] memory _prices) {

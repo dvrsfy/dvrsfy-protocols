@@ -15,7 +15,6 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     address[] public assets;
     uint256[] public allocations;
     uint24[] public pricingFees;
-    IUniswapV3Pool[] public pricingPools;
     bool public openForInvestments;
     uint256 public constant DIVISOR = 10000;
     uint256 public maxAssets = 10;
@@ -39,6 +38,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         uint256 _managementFee
     ) ERC20Permit(_name) ERC20(_name, _symbol) Ownable(_owner) {
         fundManager = _owner;
+        pricer = _pricer;
         swapper = payable(_swapper);
         baseToken = _baseToken;
         weth = _weth;
@@ -58,18 +58,17 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
     }
 
     function calculateShares(
-        IDvrsfyPricer _pricer,
         uint256 _investment
     ) public view returns (uint256) {
         uint256 _fundValue = 0;
         uint256 _shares = 0;
         uint256 _totalSupply = totalSupply();
-        uint256[] memory prices = _pricer.getPrices(
+        uint256[] memory prices = IDvrsfyPricer(pricer).getPrices(
             baseToken,
             assets,
             pricingFees
         );
-        uint256 ethPrice = _pricer.getETHPrice(baseToken, 500);
+        uint256 ethPrice = IDvrsfyPricer(pricer).getETHPrice(baseToken, 500);
         if (_totalSupply == 0) {
             _shares = _investment;
         } else {
@@ -86,15 +85,17 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         return _shares;
     }
 
-    function buyShares(IDvrsfyPricer _pricer) public payable fundIsOpen {
+    function buyShares() public payable fundIsOpen {
         if (msg.value == 0) revert InvestmentInsufficient();
-        uint256 _shares = calculateShares(_pricer, msg.value);
+        uint256 _shares = calculateShares(msg.value);
         uint256 _protocolFee = (msg.value * protocolFee) / DIVISOR;
         payable(owner()).transfer(_protocolFee);
         payable(address(this)).transfer(msg.value - _protocolFee);
         _mint(msg.sender, _shares);
         emit SharesBought(msg.sender, _shares);
     }
+
+    // Need to replace minAmountBought in _approveAndDivest
 
     function sellShares(
         uint256 _shares,
@@ -132,12 +133,19 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
 
     function invest(
         address[] calldata _tokens,
-        uint256[] calldata _amounts,
+        uint24[] calldata _pricingFees,
         uint256[] calldata _minAmountsBought,
         IDvrsfySwapper.SwapParams[] calldata _swapParams
     ) external fundManagerOnly {
         uint256 _fundAmount = address(this).balance;
         uint256 _totalInvestment = 0;
+        if (
+            !IDvrsfyPricer(pricer).validatePricingPools(
+                baseToken,
+                _tokens,
+                _pricingFees
+            )
+        ) revert InvalidPricingFees(baseToken, _tokens, _pricingFees);
         for (uint256 i = 0; i < _swapParams.length; i++) {
             _totalInvestment += _swapParams[i].sellAmount;
             if (_totalInvestment >= _fundAmount) {
@@ -146,8 +154,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
             _approveAndInvest(_swapParams[i], _minAmountsBought[i]);
             assets.push(address(_swapParams[i].buyToken));
         }
-
-        emit Investment(_tokens, _amounts);
+        emit Investment(_tokens);
     }
 
     function divest(

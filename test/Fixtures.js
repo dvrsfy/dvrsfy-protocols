@@ -108,7 +108,7 @@ async function deployInvestedFundFixture() {
 
   const tokens = [dai.target];
   const minAmountsBought = [constants.DEFAULT_MIN_AMOUNT_BOUGHT];
-  const amounts = [constants.DEFAULT_INVESTMENT];
+  const pricingFees = [constants.DEFAULT_PRICING_FEE];
   const investment = await getSwapParams(
     constants.WETH_ADDRESS,
     constants.DAI_ADDRESS,
@@ -122,14 +122,14 @@ async function deployInvestedFundFixture() {
 
   const whale = await ethers.getSigner(constants.WHALE);
 
-  await fund.connect(whale).buyShares(pricer.target, {
+  await fund.connect(whale).buyShares({
     value: constants.DEFAULT_SHARES_INVESTMENT,
   });
 
   const swapParams = [investment];
   await fund
     .connect(deployer)
-    .invest(tokens, amounts, minAmountsBought, swapParams);
+    .invest(tokens, pricingFees, minAmountsBought, swapParams);
 
   return { fund, pricer, swapper, weth, usdc, pepe, deployer };
 }

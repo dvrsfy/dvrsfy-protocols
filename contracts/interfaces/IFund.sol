@@ -11,6 +11,7 @@ interface IDvrsfyFund {
     error InsufficientBalance(uint256, uint256);
     error InvalidDivestementToken(address);
     error InvalidInvestedToken(address);
+    error InvalidPricingFees(address, address[], uint24[]);
     error InvalidSellInstructions(
         IDvrsfySwapper.SwapParams[] _swapParams,
         address[] assets
@@ -25,11 +26,11 @@ interface IDvrsfyFund {
     event Divestment(address[] _tokens, uint256[] _amounts);
     event FundOpened();
     event FundClosed();
-    event Investment(address[] _tokens, uint256[] _amounts);
+    event Investment(address[] _tokens);
     event SharesBought(address indexed investor, uint256 shares);
     event SharesSold(address indexed investor, uint256 shares);
 
-    function buyShares(IDvrsfyPricer _pricer) external payable;
+    function buyShares() external payable;
 
     function sellShares(
         uint256 _shares,
@@ -38,7 +39,7 @@ interface IDvrsfyFund {
 
     function invest(
         address[] calldata _tokens,
-        uint256[] calldata _amounts,
+        uint24[] calldata _pricingFees,
         uint256[] calldata _minAmountsBought,
         IDvrsfySwapper.SwapParams[] calldata _swapParams
     ) external;
