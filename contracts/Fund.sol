@@ -182,12 +182,12 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         emit Divestment(_tokens, _amounts);
     }
 
-    function closeFund() external onlyOwner {
+    function closeFund() external fundManagerOnly {
         openForInvestments = false;
         emit FundClosed();
     }
 
-    function openFund() external onlyOwner {
+    function openFund() external fundManagerOnly {
         openForInvestments = true;
         emit FundOpened();
     }

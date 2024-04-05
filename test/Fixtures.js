@@ -84,7 +84,7 @@ async function deployFundFixture() {
     constants.DEFAULT_MANAGEMENT_FEE
   );
 
-  return { fund, pricer, swapper, weth, usdc, pepe, deployer };
+  return { fund, pricer, swapper, weth, usdc, pepe, deployer, anyone };
 }
 
 async function deployInvestedFundFixture() {
