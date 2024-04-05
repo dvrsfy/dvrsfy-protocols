@@ -177,7 +177,7 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
                     _swapParams[i].sellAmount
                 );
             }
-            _approveAndDivest(_swapParams[i], 0, i);
+            _approveAndDivest(_swapParams[i], _minAmountsBought[0], i);
         }
         emit Divestment(_tokens, _amounts);
     }
@@ -207,6 +207,8 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         _amountBought = IDvrsfySwapper(swapper).swap{value: params.protocolFee}(
             params
         );
+        console.log("Min amount bought: ", _minAmountBought);
+        console.log("Amount bought: ", _amountBought);
         if (_amountBought < _minAmountBought)
             revert MinimumAmountNotMet(_minAmountBought, _amountBought);
     }
@@ -215,10 +217,11 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         IDvrsfySwapper.SwapParams calldata params,
         uint256 _minAmountBought
     ) public payable returns (uint256 _amountBought) {
-        require(
-            address(this).balance >= params.sellAmount,
-            "Insufficient balance"
-        );
+        if (address(this).balance < params.sellAmount)
+            revert InsufficientBalance(
+                address(this).balance,
+                params.sellAmount
+            );
         params.sellToken.approve(address(swapper), params.sellAmount);
         _amountBought = IDvrsfySwapper(swapper).swap{value: params.sellAmount}(
             params

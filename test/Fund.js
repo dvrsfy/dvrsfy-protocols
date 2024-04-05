@@ -363,10 +363,12 @@ describe("Fund Unit", function () {
         fund
           .connect(whale)
           .sellShares(
-            (constants.DEFAULT_SHARES_INVESTMENT + 1).toString(),
+            constants.DEFAULT_SHARES_INVESTMENT.toString(),
             swapParams
           )
-      ).to.be.revertedWithCustomError(fund, "InsufficientBalance");
+      )
+        .to.be.revertedWithCustomError(fund, "InsufficientBalance")
+        .withArgs(sellSharesParams.sellAmount, whaleDaiShares);
     });
 
     it("should have valid selling instructions", async function () {
@@ -521,6 +523,38 @@ describe("Fund Unit", function () {
       ).to.be.rejectedWith(fund, "InvalidPricingFees");
     });
 
+    it("the investment should revert too much slippage", async function () {
+      const { dai, weth } = await loadFixture(deployTokensFixture);
+      const { fund, pricer, deployer } = await loadFixture(deployFundFixture);
+
+      const tokens = [dai.target];
+      const minAmountsBought = [constants.FAILING_MIN_AMOUNT_BOUGHT];
+      const pricingFees = [constants.DEFAULT_PRICING_FEE];
+      const investment = await getSwapParams(
+        constants.WETH_ADDRESS,
+        constants.DAI_ADDRESS,
+        constants.DEFAULT_INVESTMENT
+      );
+
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [constants.WHALE],
+      });
+
+      const whale = await ethers.getSigner(constants.WHALE);
+
+      await fund.connect(whale).buyShares({
+        value: constants.DEFAULT_SHARES_INVESTMENT.toString(),
+      });
+
+      const swapParams = [investment];
+      await expect(
+        fund
+          .connect(deployer)
+          .invest(tokens, pricingFees, minAmountsBought, swapParams)
+      ).to.be.rejectedWith(fund, "MinimumAmountNotMet");
+    });
+
     it("anyone cannot invest the fund assets", async function () {
       const { pepe, weth } = await loadFixture(deployTokensFixture);
       const { anyone } = await getSigners();
@@ -608,6 +642,60 @@ describe("Fund Unit", function () {
       expect(await dai.balanceOf(fund.target)).to.equal(0);
     });
 
+    it("the fund manager should not be able to divest fund assets in a token other than ETH", async function () {
+      const { dai, weth } = await loadFixture(deployTokensFixture);
+      const { fund, pricer, deployer } = await loadFixture(
+        deployInvestedFundFixture
+      );
+
+      const tokens = [dai.target];
+      const minAmountsBought = [constants.DEFAULT_MIN_AMOUNT_BOUGHT];
+      const fundDaiBalance = await dai.balanceOf(fund.target);
+      const amounts = [fundDaiBalance];
+      const divestment = await getSwapParams(
+        constants.DAI_ADDRESS,
+        constants.USDC_ADDRESS,
+        fundDaiBalance
+      );
+
+      const swapParams = [divestment];
+
+      await expect(
+        fund
+          .connect(deployer)
+          .divest(tokens, amounts, minAmountsBought, swapParams)
+      )
+        .to.be.revertedWithCustomError(fund, "InvalidDivestementToken")
+        .withArgs(constants.USDC_ADDRESS);
+    });
+
+    it("the fund manager should not be able to divest more assets than owned", async function () {
+      const { dai, weth } = await loadFixture(deployTokensFixture);
+      const { fund, pricer, deployer } = await loadFixture(
+        deployInvestedFundFixture
+      );
+
+      const tokens = [dai.target];
+      const minAmountsBought = [constants.DEFAULT_MIN_AMOUNT_BOUGHT];
+      const fundDaiBalance = await dai.balanceOf(fund.target);
+      const amounts = [fundDaiBalance];
+      const divestment = await getSwapParams(
+        constants.DAI_ADDRESS,
+        constants.WETH_ADDRESS,
+        fundDaiBalance + BigInt(1)
+      );
+
+      const swapParams = [divestment];
+
+      await expect(
+        fund
+          .connect(deployer)
+          .divest(tokens, amounts, minAmountsBought, swapParams)
+      )
+        .to.be.revertedWithCustomError(fund, "InsufficientBalance")
+        .withArgs(fundDaiBalance, fundDaiBalance + BigInt(1));
+    });
+
     it("anyone cannot divest fund assets", async function () {
       const { dai, weth } = await loadFixture(deployTokensFixture);
       const { fund, pricer, deployer } = await loadFixture(
@@ -633,6 +721,32 @@ describe("Fund Unit", function () {
       )
         .to.be.revertedWithCustomError(fund, "Unauthorized")
         .withArgs(anyone.address);
+    });
+
+    it("should not divest with too much slippage", async function () {
+      const { dai, weth } = await loadFixture(deployTokensFixture);
+      const { fund, pricer, deployer } = await loadFixture(
+        deployInvestedFundFixture
+      );
+
+      const tokens = [dai.target];
+      const minAmountsBought = [constants.FAILING_MIN_AMOUNT_BOUGHT];
+      const fundDaiBalance = await dai.balanceOf(fund.target);
+      const amounts = [fundDaiBalance];
+      const divestment = await getSwapParams(
+        constants.DAI_ADDRESS,
+        constants.WETH_ADDRESS,
+        fundDaiBalance
+      );
+
+      const swapParams = [divestment];
+
+      await expect(
+        fund
+          .connect(deployer)
+          .divest(tokens, amounts, minAmountsBought, swapParams)
+      ).to.be.revertedWithCustomError(fund, "MinimumAmountNotMet");
+      // .withArgs(tokens, amounts);
     });
   });
 });
