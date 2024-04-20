@@ -207,8 +207,6 @@ contract DvrsfyFund is IDvrsfyFund, ERC20Permit, Ownable {
         _amountBought = IDvrsfySwapper(swapper).swap{value: params.protocolFee}(
             params
         );
-        console.log("Min amount bought: ", _minAmountBought);
-        console.log("Amount bought: ", _amountBought);
         if (_amountBought < _minAmountBought)
             revert MinimumAmountNotMet(_minAmountBought, _amountBought);
     }

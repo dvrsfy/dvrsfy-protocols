@@ -45,7 +45,7 @@ contract DvrsfySwapper is IDvrsfySwapper {
         if (params.sellToken == params.buyToken)
             revert SwapParamsInvalid(params);
         uint256 protocolFee = msg.value;
-        bool ethPayment;
+        // bool ethPayment;
 
         // Wrap ETH in WETH when needed
         // When sending ETH to the contract, the sellToken should be WETH
